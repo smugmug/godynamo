@@ -1,0 +1,4 @@
+Unit tests in these endpoint paths simply test JSON marshal/unmarshal on i
+the samples from the AWS documentation site.
+
+For live tests that actually transact with Dynamo, see the "tests" dir - these require an AWS account.

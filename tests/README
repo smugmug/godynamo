@@ -1,0 +1,25 @@
+These tests differ from the *_test.go test files that are in the endpoint directories.
+
+Those files are to be run with "go test" and do *not* involve accessing the live
+DynamoDB service. It didn't seem wise to create unit tests that would involve billable
+transactions with AWS. As a result, those unit tests merely assert the ability of
+the endpoint libraries to be able to conform to the JSON standards published in the
+AWS docs.
+
+The files in this directory are LIVE tests. These programs will perform
+transactions on the live DynamoDB service, and as a result, you will be billed for
+them. You will need an AWS account and a ~/.aws-config.json file formatted correctly.
+
+The filenames should explain what each test seeks to do. All tests should address
+the same table. You should first run "create_table-livetest.go", and when you
+are done, run "delete_table-livetest.go" to remove the table. Make sure the tablename
+in the files does not conflict with a table name you are using already.
+
+Many of these tests are "noisy" - they output JSON requests and responses in many
+cases. Just comment out parts that don't interest you.
+
+These tests are not exhaustive. Over time hopefully they will become so. Patches welcome.
+
+I recommend using these files more as example documentation than a test suite. Some of the
+files make reference to items created or modified in others, so the order in which you 
+run them will be important. 
