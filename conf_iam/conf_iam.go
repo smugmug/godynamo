@@ -1,5 +1,5 @@
 // Copyright (c) 2013,2014 SmugMug, Inc. All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
 // met:
@@ -9,7 +9,7 @@
 //       copyright notice, this list of conditions and the following
 //       disclaimer in the documentation and/or other materials provided
 //       with the distribution.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY SMUGMUG, INC. ``AS IS'' AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 // IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
@@ -125,7 +125,9 @@ func GoIAM(ready_chan chan bool) {
 			e := fmt.Sprintf("conf_iam.GoIAM:cannot perform initial roles read: %s",
 				roles_read_err.Error())
 			slog.SLog(syslog.LOG_ERR,e,true)
+			conf.Vals.ConfLock.Lock()
 			conf.Vals.UseIAM = false
+			conf.Vals.ConfLock.Unlock()
 			ready_chan <- false
 		}
 		// signal to caller that iam roles are ready to use
@@ -140,7 +142,9 @@ func GoIAM(ready_chan chan bool) {
 						slog.SLog(syslog.LOG_ERR,err.Error(),true)
 						// caller can fall back to hard-coded perms
 						// or live with the panic
+						conf.Vals.ConfLock.Lock()
 						conf.Vals.UseIAM = false
+						conf.Vals.ConfLock.Unlock()
 					}
 				}
 			}()

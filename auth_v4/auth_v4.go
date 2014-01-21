@@ -1,5 +1,5 @@
 // Copyright (c) 2013,2014 SmugMug, Inc. All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
 // met:
@@ -9,7 +9,7 @@
 //       copyright notice, this list of conditions and the following
 //       disclaimer in the documentation and/or other materials provided
 //       with the distribution.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY SMUGMUG, INC. ``AS IS'' AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 // IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
@@ -146,13 +146,13 @@ func RawReq(reqJSON []byte,amzTarget string) (string,string,int,error) {
 
 	// obtain the aws secret credential from the global Auth or from IAM
 	var secret string
+	conf.Vals.ConfLock.RLock()
 	if conf.Vals.UseIAM == true {
-		conf.Vals.ConfLock.RLock()
 		secret = conf.Vals.IAM.Credentials.Secret
-		conf.Vals.ConfLock.RUnlock()
 	} else {
 		secret = conf.Vals.Auth.Secret
 	}
+	conf.Vals.ConfLock.RUnlock()
 	if secret == "" {
 		panic("auth_v4.cacheable_hmacs: no Secret defined; " + IAM_WARN_MESSAGE)
 	}
@@ -162,14 +162,14 @@ func RawReq(reqJSON []byte,amzTarget string) (string,string,int,error) {
 	// obtain the aws accessKey credential from the global Auth or from IAM
 	// if using IAM, read the token while we have the lock
 	var accessKey,token string
+	conf.Vals.ConfLock.RLock()
 	if conf.Vals.UseIAM == true {
-		conf.Vals.ConfLock.RLock()
 		accessKey = conf.Vals.IAM.Credentials.AccessKey
 		token = conf.Vals.IAM.Credentials.Token
-		conf.Vals.ConfLock.RUnlock()
 	} else {
 		accessKey = conf.Vals.Auth.AccessKey
 	}
+	conf.Vals.ConfLock.RUnlock()
 	if accessKey == "" {
 		panic("auth_v4.RawReq: no Access Key defined; " + IAM_WARN_MESSAGE)
 	}
@@ -180,12 +180,14 @@ func RawReq(reqJSON []byte,amzTarget string) (string,string,int,error) {
 		"SignedHeaders=content-type;host;x-amz-date;x-amz-target," +
 		"Signature=" + signature
 	request.Header.Add("Authorization",v4auth)
+	conf.Vals.ConfLock.RLock()
 	if conf.Vals.UseIAM == true {
 		if token == "" {
 			panic("auth_v4.RawReq: no Token defined;" + IAM_WARN_MESSAGE)
 		}
 		request.Header.Add(aws_const.X_AMZ_SECURITY_TOKEN_HDR,token)
 	}
+	conf.Vals.ConfLock.RUnlock()
 
 	// where we finally send req to aws
 	response,rsp_err := Client.Do(request)
