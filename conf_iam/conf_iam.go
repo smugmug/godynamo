@@ -89,7 +89,11 @@ func WatchIAM(rf *roles_files.RolesFiles,watch_err_chan chan error) {
 		case roles_watch_err := <- err_chan:
 			watch_err_chan <- roles_watch_err
 		case <- read_signal:
-			e := "WatchIAM received a read signal"
+			// sleep for 1 while file ops complete
+			e := "WatchIAM received a read signal (sleep 1)"
+			slog.SLog(syslog.LOG_NOTICE,e,true)
+			time.Sleep(time.Duration(1) * time.Second)
+			e = "WatchIAM done sleep"
 			slog.SLog(syslog.LOG_NOTICE,e,true)
 			assign_err := AssignCredentials(rf)
 			if assign_err != nil {
