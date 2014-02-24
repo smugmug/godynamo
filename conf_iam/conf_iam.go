@@ -40,8 +40,7 @@ import (
 	"fmt"
 	"time"
 	"errors"
-	"log/syslog"
-	"github.com/bradclawsie/slog"
+	"log"
 	conf "github.com/smugmug/godynamo/conf"
 	roles_files "github.com/smugmug/goawsroles/roles_files"
 )
@@ -60,7 +59,7 @@ func AssignCredentials(rf *roles_files.RolesFiles) (error) {
 	conf.Vals.IAM.Credentials.Token     = token
 	conf.Vals.ConfLock.Unlock()
 	e := fmt.Sprintf("IAM credentials assigned at %v",time.Now())
-	slog.SLog(syslog.LOG_NOTICE,e,true)
+	log.Printf(e)
 	return nil
 }
 
@@ -83,14 +82,14 @@ func WatchIAM(rf *roles_files.RolesFiles,watch_err_chan chan error) {
 	read_signal := make(chan bool)
 	go rf.RolesWatch(err_chan,read_signal)
 	e := "IAM watching set to true, waiting..."
-	slog.SLog(syslog.LOG_NOTICE,e,true)
+	log.Printf(e)
 	for {
 		select {
 		case roles_watch_err := <- err_chan:
 			watch_err_chan <- roles_watch_err
 		case <- read_signal:
 			e := "WatchIAM received a read signal"
-			slog.SLog(syslog.LOG_NOTICE,e,true)
+			log.Printf(e)
 			assign_err := AssignCredentials(rf)
 			if assign_err != nil {
 				watch_err_chan <- assign_err
@@ -124,7 +123,7 @@ func GoIAM(ready_chan chan bool) {
 		if roles_read_err != nil {
 			e := fmt.Sprintf("conf_iam.GoIAM:cannot perform initial roles read: %s",
 				roles_read_err.Error())
-			slog.SLog(syslog.LOG_ERR,e,true)
+			log.Printf(e)
 			conf.Vals.ConfLock.Lock()
 			conf.Vals.UseIAM = false
 			conf.Vals.ConfLock.Unlock()
@@ -139,7 +138,7 @@ func GoIAM(ready_chan chan bool) {
 				select {
 				case err := <- watch_err:
 					if err != nil {
-						slog.SLog(syslog.LOG_ERR,err.Error(),true)
+						log.Printf(err.Error())
 						// caller can fall back to hard-coded perms
 						// or live with the panic
 						conf.Vals.ConfLock.Lock()
