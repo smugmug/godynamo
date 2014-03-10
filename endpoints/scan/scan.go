@@ -1,5 +1,5 @@
 // Copyright (c) 2013,2014 SmugMug, Inc. All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
 // met:
@@ -9,7 +9,7 @@
 //       copyright notice, this list of conditions and the following
 //       disclaimer in the documentation and/or other materials provided
 //       with the distribution.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY SMUGMUG, INC. ``AS IS'' AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 // IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
@@ -102,6 +102,46 @@ type Scan struct {
 	Segment ep.NullableUInt64
 	TableName string
 	TotalSegments ep.NullableUInt64
+}
+
+type scan Scan
+
+// scanParallel is identical to Scan with one exception. The "Segment" field will
+// not evaluate the null in the case of the int value of the TotalSegments being nonzero,
+// it will be treated numerically
+type scanParallel struct {
+	AttributesToGet ep.AttributesToGet
+	ExclusiveStartKey ep.Item
+	ReturnConsumedCapacity ep.ReturnConsumedCapacity
+	Limit ep.NullableUInt64
+	ScanFilter ScanFilters
+	Select ep.Select
+	Segment uint64
+	TableName string
+	TotalSegments uint64
+}
+
+// MarshalJSON for Scan types will test the TotalSegments and if they are nonzero, allow the Segment
+// field to be set to zero instead of being null'd, which is the default behavior of both
+// Segment and TotalSegments are defaulted to zero
+func (s Scan) MarshalJSON() ([]byte, error) {
+	if s.TotalSegments != 0 {
+		var sp scanParallel
+		sp.AttributesToGet = s.AttributesToGet
+		sp.ExclusiveStartKey = s.ExclusiveStartKey
+		sp.ReturnConsumedCapacity = s.ReturnConsumedCapacity
+		sp.Limit = s.Limit
+		sp.ScanFilter = s.ScanFilter
+		sp.Select = s.Select
+		sp.Segment = uint64(s.Segment)
+		sp.TableName = s.TableName
+		sp.TotalSegments = uint64(s.TotalSegments)
+		return json.Marshal(sp)
+	} else {
+		var si scan
+		si = scan(s)
+		return json.Marshal(si)
+	}
 }
 
 // NewScan returns a pointer to an instantiation of the Scan struct.

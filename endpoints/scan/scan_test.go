@@ -1,5 +1,5 @@
 // Copyright (c) 2013,2014 SmugMug, Inc. All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
 // met:
@@ -9,7 +9,7 @@
 //       copyright notice, this list of conditions and the following
 //       disclaimer in the documentation and/or other materials provided
 //       with the distribution.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY SMUGMUG, INC. ``AS IS'' AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 // IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
@@ -31,7 +31,7 @@ import (
  	ep "github.com/smugmug/godynamo/endpoint"
 )
 
-func TestSCanFilterOut(t *testing.T) {
+func TestScanFilterOut(t *testing.T) {
 	s := NewScan()
 	s.TableName = "test-table"
 	s.Limit = 30000
@@ -49,7 +49,7 @@ func TestSCanFilterOut(t *testing.T) {
 	fmt.Printf("%s\n",string(json))
 }
 
-func TestSCanFilterOut2(t *testing.T) {
+func TestScanFilterOut2(t *testing.T) {
 	s := NewScan()
 	s.TableName = "test-table"
 	s.Limit = 30000
@@ -101,6 +101,45 @@ func TestRequestUnmarshal(t *testing.T) {
 		}
 
 	}
+}
+
+func TestScan3(t *testing.T) {
+	s := NewScan()
+	s.TableName = "test-table"
+	s.Limit = 30000
+	s.TotalSegments = 1
+	json,json_err := json.Marshal(s)
+	if json_err != nil {
+		e := fmt.Sprintf("cannot marshal %s",json_err.Error())
+		t.Errorf(e)
+	}
+	fmt.Printf("%s\n",string(json))
+}
+
+func TestScan4(t *testing.T) {
+	s := NewScan()
+	s.TableName = "test-table"
+	s.Limit = 30000
+	s.TotalSegments = 5
+	json,json_err := json.Marshal(s)
+	if json_err != nil {
+		e := fmt.Sprintf("cannot marshal %s",json_err.Error())
+		t.Errorf(e)
+	}
+	fmt.Printf("%s\n",string(json))
+}
+
+func TestScan5(t *testing.T) {
+	s := NewScan()
+	s.TableName = "test-table"
+	s.Limit = 30000
+	s.TotalSegments = 0
+	json,json_err := json.Marshal(s)
+	if json_err != nil {
+		e := fmt.Sprintf("cannot marshal %s",json_err.Error())
+		t.Errorf(e)
+	}
+	fmt.Printf("%s\n",string(json))
 }
 
 func TestResponseUnmarshal(t *testing.T) {
