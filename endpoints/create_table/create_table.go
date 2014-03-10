@@ -1,5 +1,5 @@
 // Copyright (c) 2013,2014 SmugMug, Inc. All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
 // met:
@@ -9,7 +9,7 @@
 //       copyright notice, this list of conditions and the following
 //       disclaimer in the documentation and/or other materials provided
 //       with the distribution.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY SMUGMUG, INC. ``AS IS'' AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 // IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
@@ -49,6 +49,7 @@ type Create struct {
 	AttributeDefinitions ep.AttributeDefinitions
 	KeySchema ep.KeySchema
 	LocalSecondaryIndexes ep.LocalSecondaryIndexes
+	GlobalSecondaryIndexes ep.GlobalSecondaryIndexes
 	ProvisionedThroughput ep.ProvisionedThroughput
 }
 
@@ -62,6 +63,7 @@ func NewCreate() (*Create) {
 	c.AttributeDefinitions  = make(ep.AttributeDefinitions,0)
 	c.KeySchema             = make(ep.KeySchema,0)
 	c.LocalSecondaryIndexes = make(ep.LocalSecondaryIndexes,0)
+	c.GlobalSecondaryIndexes = make(ep.GlobalSecondaryIndexes,0)
 	return c
 }
 
@@ -71,7 +73,8 @@ type Response struct {
 		CreationDateTime float64
 		ItemCount uint64
 		KeySchema ep.KeySchema
-		LocalSecondaryIndexes []ep.LocalSecondaryIndex
+		LocalSecondaryIndexes []ep.LocalSecondaryIndexDesc
+		GlobalSecondaryIndexes []ep.GlobalSecondaryIndexDesc
 		ProvisionedThroughput ep.ProvisionedThroughputDesc
 		TableName string
 		TableSizeBytes uint64
@@ -83,7 +86,8 @@ type Response struct {
 func NewResponse() (*Response) {
 	r := new(Response)
 	r.TableDescription.KeySchema             = make(ep.KeySchema,0)
-	r.TableDescription.LocalSecondaryIndexes = make([]ep.LocalSecondaryIndex,0)
+	r.TableDescription.LocalSecondaryIndexes  = make([]ep.LocalSecondaryIndexDesc,0)
+	r.TableDescription.GlobalSecondaryIndexes = make([]ep.GlobalSecondaryIndexDesc,0)
 	return r
 }
 

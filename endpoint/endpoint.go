@@ -1,5 +1,5 @@
 // Copyright (c) 2013,2014 SmugMug, Inc. All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
 // met:
@@ -9,7 +9,7 @@
 //       copyright notice, this list of conditions and the following
 //       disclaimer in the documentation and/or other materials provided
 //       with the distribution.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY SMUGMUG, INC. ``AS IS'' AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 // IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
@@ -533,4 +533,76 @@ func (l LocalSecondaryIndex) MarshalJSON() ([]byte, error) {
 	}
 	li.Projection.ProjectionType = l.Projection.ProjectionType
 	return json.Marshal(li)
+}
+
+
+type LocalSecondaryIndexDesc struct {
+	IndexName string
+	IndexSizeBytes uint64
+	ItemCount uint64
+	KeySchema KeySchema
+	Projection struct {
+		NonKeyAttributes []string
+		ProjectionType string
+	}
+}
+
+type GlobalSecondaryIndex struct {
+	IndexName string
+	KeySchema KeySchema
+	Projection struct {
+		NonKeyAttributes []string
+		ProjectionType string
+	}
+	ProvisionedThroughput ProvisionedThroughput
+}
+
+func NewGlobalSecondaryIndex() (*GlobalSecondaryIndex) {
+	g := new(GlobalSecondaryIndex)
+	g.KeySchema = make(KeySchema,0)
+	g.Projection.NonKeyAttributes = make([]string,0)
+	return g
+}
+
+type globalSecondaryIndex GlobalSecondaryIndex
+
+type GlobalSecondaryIndexes []GlobalSecondaryIndex
+
+func (g GlobalSecondaryIndex) MarshalJSON() ([]byte, error) {
+	if !(g.Projection.ProjectionType == ALL ||
+		g.Projection.ProjectionType == KEYS_ONLY ||
+		g.Projection.ProjectionType == INCLUDE) {
+		e := fmt.Sprintf("endpoint.GlobalSecondaryIndex.MarshalJSON: " +
+			"ProjectionType %s is not valid",g.Projection.ProjectionType)
+		return nil, errors.New(e)
+	}
+	if len(g.Projection.NonKeyAttributes) > 20 {
+		e := fmt.Sprintf("endpoint.GlobalSecondaryIndex.MarshalJSON: " +
+			"NonKeyAttributes > 20")
+		return nil, errors.New(e)
+	}
+	var gi globalSecondaryIndex
+	gi.IndexName = g.IndexName
+	gi.KeySchema = g.KeySchema
+	gi.Projection = g.Projection
+	// if present, must have length between 1 and 20
+	if len(g.Projection.NonKeyAttributes) == 0 {
+		gi.Projection.NonKeyAttributes = nil
+	}
+	gi.ProvisionedThroughput = g.ProvisionedThroughput
+	gi.Projection.ProjectionType = g.Projection.ProjectionType
+	return json.Marshal(gi)
+}
+
+type GlobalSecondaryIndexDesc struct {
+	IndexName string
+	IndexSizeBytes uint64
+	IndexStatus string
+	ItemCount uint64
+	KeySchema KeySchema
+	Projection struct {
+		NonKeyAttributes []string
+		ProjectionType string
+	}
+	ProvisionedThroughput ProvisionedThroughputDesc
 }
