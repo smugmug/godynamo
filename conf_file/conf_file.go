@@ -50,9 +50,10 @@ func Read() {
 	etc_conf   := string(filepath.Separator) + "etc" + string(filepath.Separator) + conf.CONF_NAME
 	read_conf  := false
 	conf_files := make([]string,0)
+	const env_conf = "GODYNAMO_CONF_FILE"
 	// assumes that if set, this is a fully-qualified file path 
-	if os.Getenv("GODYNAMO_CONF_FILE") != "" {
-		conf_files = append(conf_files,os.Getenv("GODYNAMO_CONF_FILE"))
+	if os.Getenv(env_conf) != "" {
+		conf_files = append(conf_files,os.Getenv(env_conf))
 	}
 	conf_files = append(conf_files,local_conf)
 	conf_files = append(conf_files,etc_conf)
