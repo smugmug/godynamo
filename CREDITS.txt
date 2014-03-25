@@ -2,3 +2,6 @@ Contributions to this repository have been offered by the following individuals:
 
 Brad Clawsie (brad@smugmug.com)
 Don Holly (Atomic Labs, San Francisco CA)
+
+As a courtesy, please only allow contributors themselves to create pull requests to amend
+their identification.

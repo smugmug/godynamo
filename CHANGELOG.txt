@@ -1,5 +1,5 @@
-March 25
---------
+March 25, 2014
+--------------
 
 - Add keepalive support for programs that wish to use it. See README for sample use.
   Sample use launches a goroutine that HEADs your default DynamoDB url every five seconds.

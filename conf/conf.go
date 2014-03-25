@@ -47,13 +47,20 @@ type SDK_conf_file struct {
 				Access_key_id string
 				Secret_access_key string
 				// If you use syslogd (a linux or *bsd system), you may set this to "true".
-				// (currently unused)
+				// (this is currently unused)
 				Use_sys_log bool
 			}
 		}
 		Dynamo_db struct {
 			// Your dynamo hostname.
 			Host string
+			// Typically http or https, will have "://" appended.
+			Scheme string
+			// Port should correspond to the scheme. 
+			Port int
+			// If set to true, programs that are written with godynamo may
+			// opt to launch the keepalive goroutine to keep conns open.
+			KeepAlive bool
 			// Your aws zone.
 			Zone string
 			IAM struct {
@@ -92,10 +99,15 @@ type AWS_Conf struct {
 	// Dynamo connection data.
 	Network struct {
 		DynamoDB struct {
-			Host string
-			IP   string
-			Zone string
-			URL  string
+			Host      string
+			Scheme    string
+			// Port is converted into a string for internal use, typically
+			// stitching together URL path strings.
+			Port      string
+			KeepAlive bool
+			IP        string
+			Zone      string
+			URL       string
 		}
 	}
 	// If using syslogd

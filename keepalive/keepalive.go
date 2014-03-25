@@ -29,7 +29,7 @@ func KeepAlive(keepAliveUrls []string) {
 		case <- time.After(5 * time.Second):
 			dial_err := dialConns(keepAliveUrls)
 			if dial_err != nil {
-				log.Printf("auth_v4.KeepAlive: dial fail:%s",dial_err.Error())
+				log.Printf("keepalive.KeepAlive: dial fail:%s",dial_err.Error())
 			}
 		}
 	}

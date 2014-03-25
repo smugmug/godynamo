@@ -13,6 +13,12 @@
             "host":"dynamodb.us-east-1.amazonaws.com",
             // Your zone.
             "zone":"us-east-1",
+            // The scheme/port can be changed to https/443.
+            "scheme":"http",
+            "port":80,
+	    // If set to true, programs that are written with godynamo may
+	    // opt to launch the keepalive goroutine to keep conns open.
+            "keepalive":true,
             "iam": {
                 // Set to true to use IAM authentication.
                 "use_iam":true,

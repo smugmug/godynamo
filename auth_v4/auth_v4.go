@@ -137,6 +137,7 @@ func RawReq(reqJSON []byte,amzTarget string) (string,string,int,error) {
 	service := strings.ToLower(aws_const.DYNAMODB)
 	canonical_request := tasks.CanonicalRequest(
 		conf.Vals.Network.DynamoDB.Host,
+		conf.Vals.Network.DynamoDB.Port,
 		request.Header.Get(aws_const.X_AMZ_DATE_HDR),
 		request.Header.Get(aws_const.AMZ_TARGET_HDR),
 		hexPayload)

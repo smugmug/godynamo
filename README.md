@@ -17,11 +17,7 @@ Also installed as dependencies are
 
         https://github.com/smugmug/goawsroles
 
-which manages support for IAM roles,
-
-        https://github.com/bradclawsie/slog
-
-for integrating logging with syslogd.
+which manages support for IAM roles.
 
 GoDynamo is the foundation of *bbpd*, the http proxy daemon for DynamoDB.
 You may find that package here:
@@ -40,7 +36,9 @@ GoDynamo is configured with an external file. This allows you to write programs 
 hardcoded authentication values. The `conf_file` package contains an exported method `Read`
 that must be called to read these configuration variables into your program state, where they
 will be visible as the exported global variable `Conf`. The `Read` method will first look for
-`~/.aws-config.json`, and then `/etc/aws-config.json`. If neither of those files are present,
+`~/.aws-config.json`, and then `/etc/aws-config.json`. You may also set an environment variable
+`GODYNAMO_CONF_FILE` that will permit you to specify a fully-qualified file path for your own
+conf file. If none of those files are present,
 the `Read` method will return false and it is advised that your program terminate.
 
 A sample of a skeleton `aws-config.json` file is found in `conf/SAMPLE-aws-config.json`.
@@ -59,12 +57,19 @@ For convenience, here is the sample configuration file (comments nonstandard):
                     "access_key_id":"xxx",
                     "secret_access_key":"xxx",
                     // If you use syslogd (a linux or *bsd system), you may set this to "true".
+                    // (currently unused)
                     "use_sys_log":true
                 }
             },
             "dynamo_db": {
                 "host":"dynamodb.us-east-1.amazonaws.com",
                 "zone":"us-east-1",
+                // You can alternately set the scheme/port to be https/443.
+                "scheme":"http",
+                "port":80,
+                // If set to true, programs that are written with godynamo may
+                // opt to launch the keepalive goroutine to keep conns open.
+                "keepalive":true,
                 "iam": {
                     // If you do not want to use IAM (i.e. just use access_key/secret),
                     // set this to false and use the settings above.
@@ -119,19 +124,26 @@ Below is some boilerplate to enable both of these in your program:
                 panic("the conf.Vals global conf struct has not been initialized")
             }
 
+     	    // launch a background poller to keep conns to aws alive
+	        if conf.Vals.Network.DynamoDB.KeepAlive {
+		        log.Printf("launching background keepalive")
+		        go keepalive.KeepAlive([]string{conf.Vals.Network.DynamoDB.URL})
+	        }
+
             // Initialize a goroutine which will watch for changes in the local files
             // we have chosen (in our conf file) to contain our IAM authentication values.
             // It is assumed that another process refreshes these files.
             // If you opt to use plain old AWS authentication pairs, you don't need this.
-            iam_ready_chan := make(chan bool)
-            go conf_iam.GoIAM(iam_ready_chan)
-            iam_ready := <- iam_ready_chan
-            if iam_ready {
-                fmt.Printf("using iam\n")
-            } else {
-                fmt.Printf("not using iam\n")
+            if conf.Vals.UseIAM {
+                 iam_ready_chan := make(chan bool)
+                 go conf_iam.GoIAM(iam_ready_chan)
+                 iam_ready := <- iam_ready_chan
+                 if iam_ready {
+                     fmt.Printf("using iam\n")
+                } else {
+                     fmt.Printf("not using iam\n")
+                }
             }
-
             // ... rest of code
         }
 
@@ -148,8 +160,8 @@ and re-assembled. Likewise, in `endpoints/batch_write_item` you will find a func
 allows an input structure with an arbitrary number of write requests. These functions are provided
 as a convenience and do not alter your provisioning model, so be careful.
 
-*Throttling* occurs in DynamoDB operations when the server sees a spike in the rate of growth
-in requests. GoDynamo utilizes the standard *exponential decay* resubmission algorithm as described in
+*Throttling* occurs in DynamoDB operations when AWS wishes to shape traffic to their service.
+GoDynamo utilizes the standard *exponential decay* resubmission algorithm as described in
 the AWS documentation. While you will see messages regarding the throttling, GoDynamo continues to
 retry your request as per the resubmission algorithm.
 

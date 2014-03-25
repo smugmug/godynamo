@@ -74,7 +74,7 @@ func cacheable_hmacs(zone,service,secret string) ([]byte,string) {
 
 // CanonicalRequest will create the aws v4 `canonical request`.
 // May be useful for creating v4 requests for services other than DynamoDB.
-func CanonicalRequest(host,amzDateHdr,amzTargetHdr,hexPayload string) string {
+func CanonicalRequest(host,port,amzDateHdr,amzTargetHdr,hexPayload string) string {
 	// Some AWS services use the x-amz-target header. Some don't. Allow it to
 	// be passed as empty when not used.
 	amzTarget_list_elt := ""
@@ -91,7 +91,7 @@ func CanonicalRequest(host,amzDateHdr,amzTargetHdr,hexPayload string) string {
 		aws_const.CTYPE + "\n" +
 		strings.ToLower("host") + ":" +
 		host + ":" +
-		aws_const.PORT  + "\n" +
+		port + "\n" +
 		strings.ToLower(aws_const.X_AMZ_DATE_HDR) + ":" +
 		amzDateHdr + "\n" +
 		amzTarget_val +

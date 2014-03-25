@@ -27,7 +27,9 @@ package conf_file
 
 import (
 	"os"
+	"strconv"
 	"net"
+	"net/url"
 	"log"
 	"io/ioutil"
 	"encoding/json"
@@ -40,22 +42,20 @@ import (
 // Read will look for and read in the conf file, which can then be referenced as conf.Vals.
 // The conf file is specifically relevant to properly formatted requests, so it is currently
 // called in the initialization of the authreq package.
+// You may also set $GODYNAMO_CONF_FILE to be a fully-qualified path to a conf file
+// if the two preset locations are not adequate.
 func Read() {
 	var cf conf.SDK_conf_file
 	local_conf := os.Getenv("HOME") + string(filepath.Separator) + "." + conf.CONF_NAME
 	etc_conf   := string(filepath.Separator) + "etc" + string(filepath.Separator) + conf.CONF_NAME
-
-	// config directory path
-  dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
-  if err != nil {
-  	log.Fatal(err)
-  }
-  config_dir_conf := dir + string(filepath.Separator) + "config" + string(filepath.Separator) + conf.CONF_NAME
-
 	read_conf  := false
-	conf_files := []string{config_dir_conf,local_conf,etc_conf}
-	cf.Services.Default_settings.Params.Use_sys_log = true
-	conf.Vals.UseSysLog = true
+	conf_files := make([]string,0)
+	// assumes that if set, this is a fully-qualified file path 
+	if os.Getenv("GODYNAMO_CONF_FILE") != "" {
+		conf_files = append(conf_files,os.Getenv("GODYNAMO_CONF_FILE"))
+	}
+	conf_files = append(conf_files,local_conf)
+	conf_files = append(conf_files,etc_conf)
 	conf.Vals.ConfLock.Lock()
 	defer conf.Vals.ConfLock.Unlock()
 	CONF_LOCATIONS:for _,conf_file := range conf_files {
@@ -99,8 +99,27 @@ func Read() {
 	conf.Vals.Network.DynamoDB.Host = cf.Services.Dynamo_db.Host
 	conf.Vals.Network.DynamoDB.IP = dynamo_ip
 	conf.Vals.Network.DynamoDB.Zone = cf.Services.Dynamo_db.Zone
-	conf.Vals.Network.DynamoDB.URL = "http://" + conf.Vals.Network.DynamoDB.Host +
-	":" + aws_const.PORT
+	scheme := "http"
+	port   := aws_const.PORT // already a string
+	if cf.Services.Dynamo_db.Scheme != "" {
+		scheme = cf.Services.Dynamo_db.Scheme
+	}
+	if cf.Services.Dynamo_db.Port != 0 {
+		port = strconv.Itoa(cf.Services.Dynamo_db.Port)
+	}
+	conf.Vals.Network.DynamoDB.Port = port
+	conf.Vals.Network.DynamoDB.Scheme = scheme
+	conf.Vals.Network.DynamoDB.URL = scheme + "://" + conf.Vals.Network.DynamoDB.Host +
+	":" + port
+	_,url_err := url.Parse(conf.Vals.Network.DynamoDB.URL)
+	if url_err != nil {
+		panic("confload.init: read err: conf.Vals.Network.DynamoDB.URL malformed")
+	}
+	log.Printf("remote url:%s\n",conf.Vals.Network.DynamoDB.URL)
+
+	// If set to true, programs that are written with godynamo may
+	// opt to launch the keepalive goroutine to keep conns open.
+	conf.Vals.Network.DynamoDB.KeepAlive = cf.Services.Dynamo_db.KeepAlive
 
 	// read in flags for IAM support
 	if cf.Services.Dynamo_db.IAM.Use_iam == true {
