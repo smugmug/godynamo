@@ -44,8 +44,16 @@ func Read() {
 	var cf conf.SDK_conf_file
 	local_conf := os.Getenv("HOME") + string(filepath.Separator) + "." + conf.CONF_NAME
 	etc_conf   := string(filepath.Separator) + "etc" + string(filepath.Separator) + conf.CONF_NAME
+
+	// config directory path
+  dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+  if err != nil {
+  	log.Fatal(err)
+  }
+  config_dir_conf := dir + string(filepath.Separator) + "config" + string(filepath.Separator) + conf.CONF_NAME
+
 	read_conf  := false
-	conf_files := []string{local_conf,etc_conf}
+	conf_files := []string{config_dir_conf,local_conf,etc_conf}
 	cf.Services.Default_settings.Params.Use_sys_log = true
 	conf.Vals.UseSysLog = true
 	conf.Vals.ConfLock.Lock()
