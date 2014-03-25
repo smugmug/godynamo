@@ -1,0 +1,12 @@
+March 25
+--------
+
+- Add keepalive support for programs that wish to use it. See README for sample use.
+  Sample use launches a goroutine that HEADs your default DynamoDB url every five seconds.
+  (bradclawsie)
+
+- Add support for changing the scheme and port of the DynamoDB url (see sample conf and
+  README). (bradclawsie)
+
+- Add support for environment var conf file. (donholly)
+
