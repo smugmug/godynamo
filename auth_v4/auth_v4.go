@@ -25,11 +25,15 @@
 // Manages AWS Auth v4 requests to DynamoDB.
 // See http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html
 // for more information on v4 signed requests. For examples, see any of
+// the package in the `endpoints` directory
+
+// Manages AWS Auth v4 requests to DynamoDB.
+// See http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html
+// for more information on v4 signed requests. For examples, see any of
 // the package in the `endpoints` directory.
 package auth_v4
 
 import (
-	"net/url"
 	"net/http"
 	"fmt"
 	"strconv"
@@ -102,17 +106,24 @@ func MatchCheckSum(response http.Response,respbody []byte) (bool,error) {
 // RawReq will sign and transmit the request to the AWS DynanoDB endpoint.
 // This method is DynamoDB-specific.
 func RawReq(reqJSON []byte,amzTarget string) (string,string,int,error) {
-	url,url_err := url.Parse(conf.Vals.Network.DynamoDB.URL)
-	if url_err != nil {
-		e := "auth_v4.RawReq:parse " +
-			conf.Vals.Network.DynamoDB.URL +
-			" " + url_err.Error()
-		return "","",0,errors.New(e)
-	}
+
+	// shadow conf vars in a read lock to minimize contention
+	conf.Vals.ConfLock.RLock()
+	conf_url_str		:= conf.Vals.Network.DynamoDB.URL
+	conf_host		:= conf.Vals.Network.DynamoDB.Host
+	conf_port_str		:= conf.Vals.Network.DynamoDB.Port
+	conf_zone		:= conf.Vals.Network.DynamoDB.Zone
+	conf_useIAM		:= conf.Vals.UseIAM
+	conf_IAMSecret		:= conf.Vals.IAM.Credentials.Secret
+	conf_IAMAccessKey	:= conf.Vals.IAM.Credentials.AccessKey
+	conf_IAMToken		:= conf.Vals.IAM.Credentials.Token
+	conf_AuthSecret		:= conf.Vals.Auth.Secret
+	conf_AuthAccessKey	:= conf.Vals.Auth.AccessKey
+	conf.Vals.ConfLock.RUnlock()
 
 	// initialize req with body reader
 	body := strings.NewReader(string(reqJSON))
-	request,req_err := http.NewRequest(aws_const.METHOD,url.String(),body)
+	request,req_err := http.NewRequest(aws_const.METHOD,conf_url_str,body)
 	if req_err != nil {
 		e := fmt.Sprintf("auth_v4.RawReq:failed init conn %s",req_err.Error())
 		return "","",0,errors.New(e)
@@ -136,59 +147,54 @@ func RawReq(reqJSON []byte,amzTarget string) (string,string,int,error) {
 	// create the various signed formats aws uses for v4 signed reqs
 	service := strings.ToLower(aws_const.DYNAMODB)
 	canonical_request := tasks.CanonicalRequest(
-		conf.Vals.Network.DynamoDB.Host,
-		conf.Vals.Network.DynamoDB.Port,
+		conf_host,
+		conf_port_str,
 		request.Header.Get(aws_const.X_AMZ_DATE_HDR),
 		request.Header.Get(aws_const.AMZ_TARGET_HDR),
 		hexPayload)
 	str2sign := tasks.String2Sign(now,canonical_request,
-		conf.Vals.Network.DynamoDB.Zone,
+		conf_zone,
 		service)
 
 	// obtain the aws secret credential from the global Auth or from IAM
 	var secret string
-	conf.Vals.ConfLock.RLock()
-	if conf.Vals.UseIAM == true {
-		secret = conf.Vals.IAM.Credentials.Secret
+	if conf_useIAM == true {
+		secret = conf_IAMSecret
 	} else {
-		secret = conf.Vals.Auth.Secret
+		secret = conf_AuthSecret
 	}
-	conf.Vals.ConfLock.RUnlock()
 	if secret == "" {
 		panic("auth_v4.cacheable_hmacs: no Secret defined; " + IAM_WARN_MESSAGE)
 	}
 
-	signature := tasks.MakeSignature(str2sign,conf.Vals.Network.DynamoDB.Zone,service,secret)
+	signature := tasks.MakeSignature(str2sign,conf_zone,service,secret)
 
 	// obtain the aws accessKey credential from the global Auth or from IAM
 	// if using IAM, read the token while we have the lock
 	var accessKey,token string
-	conf.Vals.ConfLock.RLock()
-	if conf.Vals.UseIAM == true {
-		accessKey = conf.Vals.IAM.Credentials.AccessKey
-		token = conf.Vals.IAM.Credentials.Token
+	if conf_useIAM == true {
+		accessKey = conf_IAMAccessKey
+		token = conf_IAMToken
 	} else {
-		accessKey = conf.Vals.Auth.AccessKey
+		accessKey = conf_AuthAccessKey
 	}
-	conf.Vals.ConfLock.RUnlock()
 	if accessKey == "" {
 		panic("auth_v4.RawReq: no Access Key defined; " + IAM_WARN_MESSAGE)
 	}
 
 	v4auth := "AWS4-HMAC-SHA256 Credential=" + accessKey +
 		"/" + now.UTC().Format(aws_const.ISODATEFMT) + "/" +
-		conf.Vals.Network.DynamoDB.Zone + "/" + service + "/aws4_request," +
+		conf_zone + "/" + service + "/aws4_request," +
 		"SignedHeaders=content-type;host;x-amz-date;x-amz-target," +
 		"Signature=" + signature
+
 	request.Header.Add("Authorization",v4auth)
-	conf.Vals.ConfLock.RLock()
-	if conf.Vals.UseIAM == true {
+	if conf_useIAM == true {
 		if token == "" {
 			panic("auth_v4.RawReq: no Token defined;" + IAM_WARN_MESSAGE)
 		}
 		request.Header.Add(aws_const.X_AMZ_SECURITY_TOKEN_HDR,token)
 	}
-	conf.Vals.ConfLock.RUnlock()
 
 	// where we finally send req to aws
 	response,rsp_err := Client.Do(request)
@@ -230,3 +236,4 @@ func Req(v interface{},amzTarget string) (string,string,int,error) {
 	}
 	return "","",0,errors.New("auth_v4.Req:v unknown type")
 }
+
