@@ -1,5 +1,5 @@
 // Copyright (c) 2013,2014 SmugMug, Inc. All rights reserved.
-//
+// 
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
 // met:
@@ -9,7 +9,7 @@
 //       copyright notice, this list of conditions and the following
 //       disclaimer in the documentation and/or other materials provided
 //       with the distribution.
-//
+// 
 // THIS SOFTWARE IS PROVIDED BY SMUGMUG, INC. ``AS IS'' AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 // IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
@@ -25,11 +25,6 @@
 // Manages AWS Auth v4 requests to DynamoDB.
 // See http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html
 // for more information on v4 signed requests. For examples, see any of
-// the package in the `endpoints` directory
-
-// Manages AWS Auth v4 requests to DynamoDB.
-// See http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html
-// for more information on v4 signed requests. For examples, see any of
 // the package in the `endpoints` directory.
 package auth_v4
 
@@ -40,7 +35,6 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
-	"encoding/json"
 	"strings"
 	"hash"
 	"time"
@@ -50,7 +44,6 @@ import (
 	"github.com/smugmug/godynamo/auth_v4/tasks"
 	"github.com/smugmug/godynamo/aws_const"
 	"github.com/smugmug/godynamo/conf"
-	ep "github.com/smugmug/godynamo/endpoint"
 )
 
 const (
@@ -217,23 +210,9 @@ func RawReq(reqJSON []byte,amzTarget string) (string,string,int,error) {
 	return string(respbody),amz_requestid,response.StatusCode,nil
 }
 
-// Req prepares a RawReq call from either a ep.Endpoint instance or a []byte representation
-// serialization of the request payload. DynamoDB-specific.
-func Req(v interface{},amzTarget string) (string,string,int,error) {
-	// we take two types here, either an ep.Endpoint implementor, or
-	// a []byte representing the marshaled json
-	_,ep_ok := interface{}(v).(ep.Endpoint)
-	if ep_ok {
-		reqJSON,json_err := json.Marshal(v);
-		if json_err != nil {
-			return "","",0,json_err
-		}
-		return RawReq(reqJSON,amzTarget)
-	}
-	v_bytes,v_ok := v.([]byte)
-	if v_ok {
-		return RawReq(v_bytes,amzTarget)
-	}
-	return "","",0,errors.New("auth_v4.Req:v unknown type")
+// Req is just a wrapper for RawReq if we need to massage data
+// before dispatch.
+func Req(reqJSON []byte,amzTarget string) (string,string,int,error) {
+	return RawReq(reqJSON,amzTarget)
 }
 
