@@ -96,6 +96,10 @@ func (c Create) MarshalJSON() ([]byte, error) {
 		e := fmt.Sprintf("endpoint.Create.MarshalJSON: LocalSecondaryIndexes > 5")
 		return nil, errors.New(e)
 	}
+	if len(c.GlobalSecondaryIndexes) > 5 {
+		e := fmt.Sprintf("endpoint.Create.MarshalJSON: GlobalSecondaryIndexes > 5")
+		return nil, errors.New(e)
+	}
 	if (!ValidTableName(c.TableName)) {
 		e := fmt.Sprintf("endpoint.Create.MarshalJSON: TableName %s bad len",c.TableName)
 		return nil, errors.New(e)
@@ -105,6 +109,7 @@ func (c Create) MarshalJSON() ([]byte, error) {
 	ci.KeySchema = c.KeySchema
 	ci.AttributeDefinitions  = c.AttributeDefinitions
 	ci.LocalSecondaryIndexes = c.LocalSecondaryIndexes
+	ci.GlobalSecondaryIndexes = c.GlobalSecondaryIndexes
 	ci.ProvisionedThroughput = c.ProvisionedThroughput
 	return json.Marshal(ci)
 }
