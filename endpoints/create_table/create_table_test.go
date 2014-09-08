@@ -1,5 +1,5 @@
 // Copyright (c) 2013,2014 SmugMug, Inc. All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
 // met:
@@ -9,7 +9,7 @@
 //       copyright notice, this list of conditions and the following
 //       disclaimer in the documentation and/or other materials provided
 //       with the distribution.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY SMUGMUG, INC. ``AS IS'' AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 // IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
@@ -75,6 +75,28 @@ func TestRequestMarshal(t *testing.T) {
             }
         }
     ],
+    "GlobalSecondaryIndexes": [
+      {
+        "IndexName": "AllPostsForSubject",
+        "Projection": {
+          "ProjectionType": "KEYS_ONLY"
+        },
+        "ProvisionedThroughput": {
+          "WriteCapacityUnits": 5,
+          "ReadCapacityUnits": 5
+        },
+        "KeySchema": [
+          {
+            "KeyType": "HASH",
+            "AttributeName": "Subject"
+          },
+          {
+            "KeyType": "RANGE",
+            "AttributeName": "LastPostDateTime"
+          }
+        ]
+      }
+    ],
     "ProvisionedThroughput": {
         "ReadCapacityUnits": 5,
         "WriteCapacityUnits": 5
@@ -124,6 +146,31 @@ func TestResponseMarshal(t *testing.T) {
             {
                 "AttributeName": "Subject",
                 "KeyType": "RANGE"
+            }
+        ],
+        "GlobalSecondaryIndexes": [
+            {
+                "IndexSizeBytes": 0,
+                "IndexName": "AllPostsForSubject",
+                "Projection": {
+                    "ProjectionType": "KEYS_ONLY"
+                },
+                "ProvisionedThroughput": {
+                    "WriteCapacityUnits": 5,
+                    "ReadCapacityUnits": 5
+                },
+                "IndexStatus": "ACTIVE",
+                "KeySchema": [
+                    {
+                        "KeyType": "HASH",
+                        "AttributeName": "Subject"
+                    },
+                    {
+                        "KeyType": "RANGE",
+                        "AttributeName": "LastPostDateTime"
+                    }
+                ],
+                "ItemCount": 0
             }
         ],
         "LocalSecondaryIndexes": [

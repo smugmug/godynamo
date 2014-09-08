@@ -80,6 +80,31 @@ func TestResponseMarshal(t *testing.T) {
                 "KeyType": "RANGE"
             }
         ],
+        "GlobalSecondaryIndexes": [
+            {
+                "IndexSizeBytes": 0,
+                "IndexName": "AllPostsForSubject",
+                "Projection": {
+                    "ProjectionType": "KEYS_ONLY"
+                },
+                "ProvisionedThroughput": {
+                    "WriteCapacityUnits": 5,
+                    "ReadCapacityUnits": 5
+                },
+                "IndexStatus": "ACTIVE",
+                "KeySchema": [
+                    {
+                        "KeyType": "HASH",
+                        "AttributeName": "Subject"
+                    },
+                    {
+                        "KeyType": "RANGE",
+                        "AttributeName": "LastPostDateTime"
+                    }
+                ],
+                "ItemCount": 0
+            }
+        ],
         "LocalSecondaryIndexes": [
             {
                 "IndexName": "LastPostIndex",

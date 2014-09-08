@@ -60,6 +60,7 @@ type Response struct {
 		ItemCount uint64
 		KeySchema ep.KeySchema
 		LocalSecondaryIndexes []ep.LocalSecondaryIndex
+		GlobalSecondaryIndexes []ep.GlobalSecondaryIndex
 		ProvisionedThroughput ep.ProvisionedThroughputDesc
 		TableName string
 		TableSizeBytes uint64
@@ -72,6 +73,7 @@ func NewResponse() (*Response) {
 	r := new(Response)
 	r.Table.KeySchema             = make(ep.KeySchema,0)
 	r.Table.LocalSecondaryIndexes = make([]ep.LocalSecondaryIndex,0)
+	r.Table.GlobalSecondaryIndexes = make([]ep.GlobalSecondaryIndex,0)
 	return r
 }
 
