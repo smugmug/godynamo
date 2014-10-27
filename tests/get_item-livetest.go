@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 	"net/http"
-	ep "github.com/smugmug/godynamo/endpoint"
 	get "github.com/smugmug/godynamo/endpoints/get_item"
 	conf_iam "github.com/smugmug/godynamo/conf_iam"
+	"github.com/smugmug/godynamo/types/attributevalue"
 	"github.com/smugmug/godynamo/conf"
 	"github.com/smugmug/godynamo/conf_file"
 	"log"
@@ -33,18 +33,13 @@ func main() {
 	}
 	conf.Vals.ConfLock.RUnlock()
 
-	for i := 1; i <= 300; i++ {
-		var get1 get.Request
-		get1.TableName = "test.dynamo-new-api"
-		get1.Key = make(ep.Item)
-		k := fmt.Sprintf("AHashKey%d",i)
-		v := fmt.Sprintf("%d",i)
-		get1.Key["TheHashKey"] = ep.AttributeValue{S:k}
-		get1.Key["TheRangeKey"] = ep.AttributeValue{N:v}
-		body,code,err := get1.EndpointReq()
-		if err != nil || code != http.StatusOK {
-			fmt.Printf("get failed %d %v %s\n",code,err,body)
-		}
-		fmt.Printf("%s\n",string(body))
+	get1 := get.NewGetItem()
+	get1.TableName = "test-godynamo-livetest"
+	get1.Key["TheHashKey"] = &attributevalue.AttributeValue{S:"AHashKey162"}
+	get1.Key["TheRangeKey"] = &attributevalue.AttributeValue{N:"162"}
+	body,code,err := get1.EndpointReq()
+	if err != nil || code != http.StatusOK {
+		fmt.Printf("get failed %d %v %s\n",code,err,body)
 	}
+	fmt.Printf("%v\n%v\n,%v\n",body,code,err)
 }

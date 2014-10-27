@@ -10,7 +10,7 @@ import (
 	get_item "github.com/smugmug/godynamo/endpoints/get_item"
 	update_item "github.com/smugmug/godynamo/endpoints/update_item"
 	delete_item "github.com/smugmug/godynamo/endpoints/delete_item"
-	ep "github.com/smugmug/godynamo/endpoint"
+	"github.com/smugmug/godynamo/types/attributevalue"
 	conf_iam "github.com/smugmug/godynamo/conf_iam"
 	"github.com/smugmug/godynamo/conf"
 	"github.com/smugmug/godynamo/conf_file"
@@ -52,18 +52,27 @@ func main() {
 	// INSERT SINGLE ITEM
 	hk := "a-hash-key"
 	rk := "1"
-        var put1 put_item.Request
+        put1 := put_item.NewPutItem()
         put1.TableName = tablename1
-        var av1,av2,av3,av4,av5,av6,av7 ep.AttributeValue
+	av1 := attributevalue.NewAttributeValue()
+	av2 := attributevalue.NewAttributeValue()
+	av3 := attributevalue.NewAttributeValue()
+	av4 := attributevalue.NewAttributeValue()
+	av5 := attributevalue.NewAttributeValue()
+	av6 := attributevalue.NewAttributeValue()
+	av7 := attributevalue.NewAttributeValue()
         av1.S = hk
         av2.N = rk
-        av3.SS = []string{"pk1_a","pk1_b","pk1_c"}
-        av4.NS = []string{"1","2","3","-7.234234234234234e+09"}
+	av3.InsertSS("pk1_a")
+	av3.InsertSS("pk1_c")
+	av4.InsertNS("1")
+	av4.InsertNS_float64(2)
+	av4.InsertNS("3")
+	av4.InsertNS("-7.2432342")
         av5.N  = "1"
         av6.B  = base64.StdEncoding.EncodeToString([]byte("hello"))
-        av7.BS = []string{base64.StdEncoding.EncodeToString([]byte("hello")),
-                base64.StdEncoding.EncodeToString([]byte("there"))}
-	put1.Item = make(ep.Item)
+	av7.InsertBS(base64.StdEncoding.EncodeToString([]byte("hello")))
+	av7.InsertBS(base64.StdEncoding.EncodeToString([]byte("there")))
 	put1.Item["TheHashKey"] = av1
 	put1.Item["TheRangeKey"] = av2
 	put1.Item["stringlist"] = av3
@@ -71,20 +80,17 @@ func main() {
 	put1.Item["num"] = av5
 	put1.Item["byte"] = av6
 	put1.Item["bytelist"] = av7
-        // recommended to make sure pk does not exist yet in table
-	// (i.e. this will be a new item)
-	put1.Expected = make(ep.Expected)
-	put1.Expected["t1.hk"] = ep.Constraints{Exists:false}
+
 	body,code,err = put1.EndpointReq()
 	if err != nil || code != http.StatusOK {
 		fmt.Printf("put1 failed %d %v %s\n",code,err,body)
 		os.Exit(1)
 	}
+	fmt.Printf("%v\n%v\n,%v\n",body,code,err)
 
 	// GET THAT ITEM
-        var get1 get_item.Request
+        get1 := get_item.NewGetItem()
         get1.TableName = tablename1
-	get1.Key = make(ep.Item)
         get1.Key["TheHashKey"] = av1
         get1.Key["TheRangeKey"] = av2
 
@@ -100,68 +106,45 @@ func main() {
                fmt.Printf("get failed %d %v %s\n",code,err,body)
                os.Exit(1)
         }
+	fmt.Printf("%v\n%v\n,%v\n",body,code,err)
+
 	var gr get_item.Response
 	um_err := json.Unmarshal([]byte(body),&gr)
 	if um_err != nil {
 		fmt.Printf("get resp unmarshal failed %s\n",um_err.Error())
 		os.Exit(1)
 	}
-
-	// USE PUT TO REPLACE THAT ITEM CONDITIONALLY
-        // **SET IT UP TO FAIL**
-        var put2 put_item.Request
-        put2.TableName = tablename1
-        var av1_2,av2_2,av3_2,av4_2,av5_2,av6_2 ep.AttributeValue
-        av1_2.S = hk
-        av2_2.N = rk
-        av3_2.SS = []string{"pk1_d","pk1_e","pk1_f"}
-        av4_2.NS = []string{"4","5","6"}
-        av5_2.N  = "2"
-        av6_2.S  = "hello there"
-        put2.Item = make(ep.Item)
-	put2.Item["TheHashKey"] = av1_2
-	put2.Item["TheRangeKey"] = av2_2
-        put2.Item["stringlist"] = av3_2
-        put2.Item["numlist"] = av4_2
-        put2.Item["num"] = av5_2
-        put2.Item["string"] = av6_2
-        put2.Item["byte"] = av6
-        put2.Item["bytelist"] = av7
-        put2.Expected = make(ep.Expected)
-        put2.Expected["TheHashKey"] = ep.Constraints{Exists:false}
-        body,code,err = put2.EndpointReq()
-        if err == nil && code == http.StatusOK {
-                fmt.Printf("put2 should have failed %d %v %s\n",code,err,body)
-                os.Exit(1)
-        }
-
-	// NOW MAKE IT SO THAT PUT WORKS
-        put2.Expected = make(ep.Expected)
-        put2.ReturnValues = put_item.RETVAL_ALL_OLD
-        put2.Expected["num"] = ep.Constraints{Exists:true,Value:av5}
-        body,code,err = put2.EndpointReq()
-        if err != nil || code != http.StatusOK {
-                fmt.Printf("put2 item failed %d %v %s\n",code,err,body)
-                os.Exit(1)
-        }
+	fmt.Printf("%v\n",string(body))
 
 	// UPDATE THAT ITEM
-        var up1 update_item.Request
+        up1 := update_item.NewUpdateItem()
         new_attr_val := "new string here"
         up1.TableName = tablename1
-	up1.Key = make(ep.Item)
         up1.Key["TheHashKey"] = av1
         up1.Key["TheRangeKey"] = av2
 
-        up1.AttributeUpdates = make(update_item.AttributeUpdates)
-        up1.AttributeUpdates["new_string"] =
-                update_item.AttributeAction{Value:ep.AttributeValue{S:new_attr_val},Action:update_item.ACTION_PUT}
-        var del_stringlist ep.AttributeValue
-        del_stringlist.SS = []string{"pk1_a"}
-        up1.AttributeUpdates["stringlist"] =
-                update_item.AttributeAction{Value:del_stringlist,Action:update_item.ACTION_DEL}
-        up1.AttributeUpdates["byte"] = update_item.AttributeAction{Value:ep.AttributeValue{},Action:update_item.ACTION_DEL}
-        up1.AttributeUpdates["num"] = update_item.AttributeAction{Value:ep.AttributeValue{N:"4"},Action:update_item.ACTION_ADD}
+        up1.AttributeUpdates = attributevalue.NewAttributeValueUpdateMap()
+	up_avu := attributevalue.NewAttributeValueUpdate()
+	up_avu.Action = update_item.ACTION_PUT
+	up_avu.Value = &attributevalue.AttributeValue{S:new_attr_val}
+        up1.AttributeUpdates["new_string"] = up_avu
+
+	del_avu := attributevalue.NewAttributeValueUpdate()
+	del_avu.Action = update_item.ACTION_DEL
+	del_avu.Value = attributevalue.NewAttributeValue()
+	del_avu.Value.InsertSS("pk1_a")
+        up1.AttributeUpdates["stringlist"] = del_avu
+
+	del2_avu := attributevalue.NewAttributeValueUpdate()
+	del2_avu.Action = update_item.ACTION_DEL
+	del2_avu.Value = &attributevalue.AttributeValue{}
+        up1.AttributeUpdates["byte"] = del2_avu
+
+	add_avu := attributevalue.NewAttributeValueUpdate()
+	add_avu.Action = update_item.ACTION_ADD
+	add_avu.Value = &attributevalue.AttributeValue{N:"4"}
+        up1.AttributeUpdates["num"] = add_avu
+
         up1.ReturnValues = update_item.RETVAL_ALL_NEW
 
 	update_item_json,update_item_json_err := json.Marshal(up1)
@@ -176,6 +159,7 @@ func main() {
                fmt.Printf("update item failed %d %v %s\n",code,err,body)
                os.Exit(1)
         }
+	fmt.Printf("%v\n%v\n,%v\n",body,code,err)
 
 	var ur update_item.Response
 	um_err = json.Unmarshal([]byte(body),&ur)
@@ -190,20 +174,21 @@ func main() {
                fmt.Printf("get failed %d %v %s\n",code,err,body)
                os.Exit(1)
         }
+	fmt.Printf("%v\n%v\n,%v\n",body,code,err)
 
 	// DELETE THE ITEM
-	var del1 delete_item.Request
-	del1.Key = make(ep.Item)
+	del1 := delete_item.NewDeleteItem()
         del1.TableName = tablename1
         del1.Key["TheHashKey"] = av1
         del1.Key["TheRangeKey"] = av2
 
-        del1.Expected = make(ep.Expected)
-        del1.Expected["num"] =  ep.Constraints{Exists:true,Value:ep.AttributeValue{N:"6"}}
         del1.ReturnValues = delete_item.RETVAL_ALL_OLD
         body,code,err = del1.EndpointReq()
         if err != nil || code != http.StatusOK {
                 fmt.Printf("delete item failed %d %v %s\n",code,err,body)
                 os.Exit(1)
         }
+	fmt.Printf("%v\n%v\n,%v\n",body,code,err)
+
+	fmt.Printf("PASSED\n")
 }

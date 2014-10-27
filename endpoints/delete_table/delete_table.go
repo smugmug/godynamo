@@ -1,27 +1,3 @@
-// Copyright (c) 2013,2014 SmugMug, Inc. All rights reserved.
-// 
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are
-// met:
-//     * Redistributions of source code must retain the above copyright
-//       notice, this list of conditions and the following disclaimer.
-//     * Redistributions in binary form must reproduce the above
-//       copyright notice, this list of conditions and the following
-//       disclaimer in the documentation and/or other materials provided
-//       with the distribution.
-// 
-// THIS SOFTWARE IS PROVIDED BY SMUGMUG, INC. ``AS IS'' AND ANY
-// EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL SMUGMUG, INC. BE LIABLE FOR
-// ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
-// GOODS OR SERVICES;LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
-// IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
-// OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-// ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
 // Support for the DynamoDB DeleteTable endpoint.
 //
 // example use:
@@ -31,11 +7,10 @@
 package delete_table
 
 import (
-	"fmt"
-	"errors"
+	"encoding/json"
 	"github.com/smugmug/godynamo/authreq"
 	"github.com/smugmug/godynamo/aws_const"
-	create "github.com/smugmug/godynamo/endpoints/create_table"
+	create_table "github.com/smugmug/godynamo/endpoints/create_table"
 )
 
 const (
@@ -43,33 +18,44 @@ const (
 	DELETETABLE_ENDPOINT = aws_const.ENDPOINT_PREFIX + ENDPOINT_NAME
 )
 
-type Delete struct {
+type DeleteTable struct {
 	TableName string
 }
 
-type Request Delete
+// Delete is an alias for backwards compatibility
+type Delete DeleteTable
 
-type Response create.Response
+type Request DeleteTable
 
-// NewResponse returns a pointer to an instantiation of the local Response struct.
+func NewDeleteTable() (*DeleteTable) {
+	d := new(DeleteTable)
+	return d
+}
+
+// DeleteTable and CreateTable use the same Response format
+type Response create_table.Response
+
 func NewResponse() (*Response) {
-	cr := create.NewResponse()
+	cr := create_table.NewResponse()
 	r := Response(*cr)
 	return &r
 }
 
-// EndpointReq implements the Endpoint interface.
-func (del Delete) EndpointReq() (string,int,error) {
+func (delete_table *DeleteTable) EndpointReq() (string,int,error) {
 	// returns resp_body,code,err
-	if authreq.AUTH_VERSION != authreq.AUTH_V4 {
-		e := fmt.Sprintf("delete_table(Delete).EndpointReq " +
-			"auth must be v4")
-		return "",0,errors.New(e)
+	reqJSON,json_err := json.Marshal(delete_table);
+	if json_err != nil {
+		return "",0,json_err
 	}
-	return authreq.RetryReq_V4(&del,DELETETABLE_ENDPOINT)
+	return authreq.RetryReqJSON_V4(reqJSON,DELETETABLE_ENDPOINT)
 }
 
-// EndpointReq implements the Endpoint interface on the local Request type.
-func (req Request) EndpointReq() (string,int,error) {
-	return (Delete(req)).EndpointReq()
+func (delete *Delete) EndpointReq() (string,int,error) {
+	delete_table := DeleteTable(*delete)
+	return delete_table.EndpointReq()
+}
+
+func (req *Request) EndpointReq() (string,int,error) {
+	delete_table := DeleteTable(*req)
+	return delete_table.EndpointReq()
 }

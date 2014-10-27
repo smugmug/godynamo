@@ -1,3 +1,31 @@
+October 27, 2014
+----------------
+
+- Bring GoDynamo into conformance with substantial DynamoDB changes rolled out by
+  AWS in October 2014. 
+
+- This is a major, breaking change in the GoDynamo package. Caution is warranted,
+  and users should expect existing code to require attention. Given the
+  amount of code changed, bugs should be anticipated.
+
+- Types from the "endpoint" package are now broken out into their own 
+  files in the "types" directory.
+
+- In many cases, value types have been replaced by reference types.
+
+- Numerous other small inconsistencies, errors and issues have been addressed.
+
+- Tests have been updated to match new AWS examples.
+
+- Licensing has been removed from the top of each source file. The BSD license
+  is now only a standalone file in the top directory of the repository.
+
+- Note: AWS is advertising convenience functions to transform arbitrary JSON to and
+  from Dynamo types in its own SDKs. GoDynamo does not provide similar functionality
+  given that these transformations are "lossy" and cannot fully encompass the implied
+  types of DynamoDB.
+
+
 March 25, 2014
 --------------
 

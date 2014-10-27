@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"encoding/json"
 	"net/http"
-	ep "github.com/smugmug/godynamo/endpoint"
 	batch_get_item "github.com/smugmug/godynamo/endpoints/batch_get_item"
 	conf_iam "github.com/smugmug/godynamo/conf_iam"
+	"github.com/smugmug/godynamo/types/item"
+	"github.com/smugmug/godynamo/types/attributevalue"
 	"github.com/smugmug/godynamo/conf"
 	"github.com/smugmug/godynamo/conf_file"
 	"log"
@@ -20,22 +21,22 @@ func Test1() {
 	tn := "test-godynamo-livetest"
 	b.RequestItems[tn] = batch_get_item.NewRequestInstance()
 	for i := 1; i <= 200; i++ {
-		item := make(ep.Item)
+		item := item.NewItem()
 		k := fmt.Sprintf("AHashKey%d",i)
 		v := fmt.Sprintf("%d",i)
-		item["TheHashKey"] = ep.AttributeValue{S:k}
-		item["TheRangeKey"] = ep.AttributeValue{N:v}
+		item["TheHashKey"] = &attributevalue.AttributeValue{S:k}
+		item["TheRangeKey"] = &attributevalue.AttributeValue{N:v}
 		b.RequestItems[tn].Keys =
 			append(b.RequestItems[tn].Keys,item)
 
 	}
-	_,jerr := json.Marshal(*b)
+	_,jerr := json.Marshal(b)
 	if jerr != nil {
 		fmt.Printf("%v\n",jerr)
 	} else {
 		//fmt.Printf("%s\n",string(json))
 	}
-	bs,_ := batch_get_item.Split(*b)
+	bs,_ := batch_get_item.Split(b)
 	for _,bsi := range bs {
 	 	body,code,err := bsi.RetryBatchGet(0)
 	 	if err != nil || code != http.StatusOK {
@@ -53,11 +54,11 @@ func Test2() {
 	tn := "test-godynamo-livetest"
 	b.RequestItems[tn] = batch_get_item.NewRequestInstance()
 	for i := 1; i <= 200; i++ {
-		item := make(ep.Item)
+		item := item.NewItem()
 		k := fmt.Sprintf("AHashKey%d",i)
 		v := fmt.Sprintf("%d",i)
-		item["TheHashKey"] = ep.AttributeValue{S:k}
-		item["TheRangeKey"] = ep.AttributeValue{N:v}
+		item["TheHashKey"] = &attributevalue.AttributeValue{S:k}
+		item["TheRangeKey"] = &attributevalue.AttributeValue{N:v}
 		b.RequestItems[tn].Keys =
 			append(b.RequestItems[tn].Keys,item)
 

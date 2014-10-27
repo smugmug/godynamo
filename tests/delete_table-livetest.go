@@ -43,18 +43,23 @@ func main() {
 	var body string
 
 	// DELETE THE TABLE
-	var del_table1 delete_table.Request
+	del_table1 := delete_table.NewDeleteTable()
         del_table1.TableName = tablename1
-        _,code,err = del_table1.EndpointReq()
+        body,code,err = del_table1.EndpointReq()
         if err != nil || code != http.StatusOK {
                fmt.Printf("fail delete %d %v %s\n",code,err,body)
                os.Exit(1)
         }
+	fmt.Printf("%v\n%v\n,%v\n",body,code,err)
 
 	// List TABLES
 	var l list.List
 	l.ExclusiveStartTableName = ""
 	l.Limit = 100
-	lbody,lcode,lerr := l.EndpointReq()
-	fmt.Printf("%v\n%v\n,%v\n",lbody,lcode,lerr)
+	body,code,err = l.EndpointReq()
+        if err != nil || code != http.StatusOK {
+               fmt.Printf("fail delete %d %v %s\n",code,err,body)
+               os.Exit(1)
+        }
+	fmt.Printf("%v\n%v\n,%v\n",body,code,err)
 }

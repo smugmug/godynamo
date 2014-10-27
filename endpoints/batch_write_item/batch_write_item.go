@@ -1,27 +1,3 @@
-// Copyright (c) 2013,2014 SmugMug, Inc. All rights reserved.
-// 
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are
-// met:
-//     * Redistributions of source code must retain the above copyright
-//       notice, this list of conditions and the following disclaimer.
-//     * Redistributions in binary form must reproduce the above
-//       copyright notice, this list of conditions and the following
-//       disclaimer in the documentation and/or other materials provided
-//       with the distribution.
-// 
-// THIS SOFTWARE IS PROVIDED BY SMUGMUG, INC. ``AS IS'' AND ANY
-// EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL SMUGMUG, INC. BE LIABLE FOR
-// ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
-// GOODS OR SERVICES;LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
-// IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
-// OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-// ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
 // Support for the DynamoDB BatchWriteItem endpoint.
 // This package offers support for request sizes that exceed AWS limits.
 //
@@ -38,6 +14,10 @@ import (
 	"fmt"
 	"github.com/smugmug/godynamo/authreq"
 	"github.com/smugmug/godynamo/aws_const"
+	"github.com/smugmug/godynamo/types/item"
+	"github.com/smugmug/godynamo/types/capacity"
+	"github.com/smugmug/godynamo/types/attributevalue"
+	"github.com/smugmug/godynamo/types/itemcollectionmetrics"
 	ep "github.com/smugmug/godynamo/endpoint"
 )
 
@@ -51,14 +31,15 @@ const (
 )
 
 type DeleteRequest struct {
-	Key ep.Item
+	Key item.Item
 }
 
 type PutRequest struct {
-	Item ep.Item
+	Item item.Item
 }
 
-// BatchWriteItem requests can be puts or deletes. The non-nil member of this struct will be the request type specified.
+// BatchWriteItem requests can be puts or deletes.
+// The non-nil member of this struct will be the request type specified.
 // Do not specify (non-nil) both in one struct instance.
 type RequestInstance struct {
 	PutRequest *PutRequest
@@ -80,11 +61,10 @@ type Table2Requests map[string] []RequestInstance
 
 type BatchWriteItem struct {
 	RequestItems Table2Requests
-	ReturnConsumedCapacity ep.ReturnConsumedCapacity
-	ReturnItemCollectionMetrics ep.ReturnItemCollectionMetrics
+	ReturnConsumedCapacity string `json:",omitempty"`
+	ReturnItemCollectionMetrics string `json:",omitempty"`
 }
 
-// NewBatchWriteItem will return a pointer to an initialized BatchWriteItem struct.
 func NewBatchWriteItem() (*BatchWriteItem) {
 	b := new(BatchWriteItem)
 	b.RequestItems = make(Table2Requests)
@@ -94,41 +74,24 @@ func NewBatchWriteItem() (*BatchWriteItem) {
 type Request BatchWriteItem
 
 type Response struct {
-	ConsumedCapacity []ep.ConsumedCapacity
-	ItemCollectionMetrics map [string] []ep.ItemCollectionMetrics
+	ConsumedCapacity []capacity.ConsumedCapacity
+	ItemCollectionMetrics itemcollectionmetrics.ItemCollectionMetricsMap
 	UnprocessedItems Table2Requests
 }
 
-// NewResponse will return a pointer to an initialized Response struct.
 func NewResponse() (*Response) {
 	r := new(Response)
-	r.ConsumedCapacity      = make([]ep.ConsumedCapacity,0)
-	r.ItemCollectionMetrics = make(map[string] []ep.ItemCollectionMetrics)
-	r.UnprocessedItems      = make(Table2Requests)
+	r.ConsumedCapacity = make([]capacity.ConsumedCapacity,0)
+	r.ItemCollectionMetrics = itemcollectionmetrics.NewItemCollectionMetricsMap()
+	r.UnprocessedItems = make(Table2Requests)
 	return r
-}
-
-func (r RequestInstance) MarshalJSON() ([]byte, error) {
-	if r.PutRequest != nil {
-		var p request_putrequest
-		p.PutRequest = *r.PutRequest
-		return json.Marshal(p)
-	}
-	if r.DeleteRequest != nil {
-		var d request_deleterequest
-		d.DeleteRequest = *r.DeleteRequest
-		return json.Marshal(d)
-	}
-	e := fmt.Sprintf("batch_write_item.Request.MarshalJSON:" +
-		"no valid puts or deletes in %v",r)
-	return nil, errors.New(e)
 }
 
 // Split supports the ability to have BatchWriteItem structs whose size
 // excceds the stated AWS limits. This function splits an arbitrarily-sized
 // BatchWriteItems into a list of BatchWriteItem structs that are limited
 // to the upper bound stated by AWS.
-func Split(b BatchWriteItem) ([]BatchWriteItem,error) {
+func Split(b *BatchWriteItem) ([]BatchWriteItem,error) {
 	bs := make([]BatchWriteItem,0)
 	bi := NewBatchWriteItem()
 	i := 0
@@ -159,28 +122,25 @@ func Split(b BatchWriteItem) ([]BatchWriteItem,error) {
 	return bs,nil
 }
 
-// EndpointReq for BatchGetItem which assumes its BatchWriteItem struct instance `b`
-// conforms to AWS limits. Use this if you do not employ arbitrarily-sized BatchWriteItems
-// and instead choose to conform to the AWS limits.
-func (b BatchWriteItem) EndpointReq() (string,int,error) {
+func (batch_write_item *BatchWriteItem) EndpointReq() (string,int,error) {
 	// returns resp_body,code,err
-	if authreq.AUTH_VERSION != authreq.AUTH_V4 {
-		e := fmt.Sprintf("batch_write_item(BatchWriteItem).EndpointReq " +
-			"auth must be v4")
-		return "",0,errors.New(e)
+	reqJSON,json_err := json.Marshal(batch_write_item);
+	if json_err != nil {
+		return "",0,json_err
 	}
-	return authreq.RetryReq_V4(&b,BATCHWRITE_ENDPOINT)
+	return authreq.RetryReqJSON_V4(reqJSON,BATCHWRITE_ENDPOINT)
 }
 
-func (req Request) EndpointReq() (string,int,error) {
-	return (BatchWriteItem(req)).EndpointReq()
+func (req *Request) EndpointReq() (string,int,error) {
+	batch_write_item := BatchWriteItem(*req)
+	return batch_write_item.EndpointReq()
 }
 
 // DoBatchWrite is an endpoint request handler for BatchWriteItem that supports arbitrarily-sized
 // BatchWriteItem struct instances. These are split in a list of conforming BatchWriteItem instances
 // via `Split` and the concurrently dispatched to DynamoDB, with the resulting responses stitched
 // together. May break your provisioning.
-func (b BatchWriteItem) DoBatchWrite() (string,int,error) {
+func (b *BatchWriteItem) DoBatchWrite() (string,int,error) {
 	var err error
 	code := http.StatusOK
 	body := ""
@@ -225,23 +185,33 @@ func (b BatchWriteItem) DoBatchWrite() (string,int,error) {
 
 // unprocessedKeys2BatchWriteItems will take a response from DynamoDB that indicates some Keys
 // require resubmitting, and turns these into a BatchWriteItem struct instance.
-func unprocessedItems2BatchWriteItems(req BatchWriteItem,resp *Response) (*BatchWriteItem,error) {
+func unprocessedItems2BatchWriteItems(req *BatchWriteItem,resp *Response) (*BatchWriteItem,error) {
 	b := NewBatchWriteItem()
 	for tn,_ := range resp.UnprocessedItems {
 		for _,reqinst := range resp.UnprocessedItems[tn] {
 			var reqinst_cp RequestInstance
 			if reqinst.DeleteRequest != nil {
 				reqinst_cp.DeleteRequest = new(DeleteRequest)
-				reqinst_cp.DeleteRequest.Key = make(ep.Item)
+				reqinst_cp.DeleteRequest.Key = make(item.Item)
 				for k,v := range reqinst.DeleteRequest.Key {
-					reqinst_cp.DeleteRequest.Key[k] = v
+					v_cp := attributevalue.NewAttributeValue()
+					cp_err := v.Copy(v_cp)
+					if cp_err != nil {
+						return nil,cp_err
+					}
+					reqinst_cp.DeleteRequest.Key[k] = v_cp
 				}
 				b.RequestItems[tn] = append(b.RequestItems[tn],reqinst_cp)
 			} else if reqinst.PutRequest != nil {
 				reqinst_cp.PutRequest = new(PutRequest)
-				reqinst_cp.PutRequest.Item = make(ep.Item)
+				reqinst_cp.PutRequest.Item = make(item.Item)
 				for k,v := range reqinst.PutRequest.Item {
-					reqinst_cp.PutRequest.Item[k] = v
+					v_cp := attributevalue.NewAttributeValue()
+					cp_err := v.Copy(v_cp)
+					if cp_err != nil {
+						return nil,cp_err
+					}
+					reqinst_cp.PutRequest.Item[k] = v_cp
 				}
 				b.RequestItems[tn] = append(b.RequestItems[tn],reqinst_cp)
 			}
@@ -254,9 +224,9 @@ func unprocessedItems2BatchWriteItems(req BatchWriteItem,resp *Response) (*Batch
 
 // Add ConsumedCapacity from "this" Response to "all", the eventual stitched Response.
 func combineResponseMetadata(all,this *Response) (error) {
-	combinedConsumedCapacity := make([]ep.ConsumedCapacity,0)
+	combinedConsumedCapacity := make([]capacity.ConsumedCapacity,0)
 	for _,this_cc := range this.ConsumedCapacity {
-		var cc ep.ConsumedCapacity
+		var cc capacity.ConsumedCapacity
 		cc.TableName = this_cc.TableName
 		cc.CapacityUnits = this_cc.CapacityUnits
 		for _,all_cc := range all.ConsumedCapacity {
@@ -271,7 +241,7 @@ func combineResponseMetadata(all,this *Response) (error) {
 		for _,icm := range this.ItemCollectionMetrics[tn] {
 			if _,tn_is_all := all.ItemCollectionMetrics[tn]; !tn_is_all {
 				all.ItemCollectionMetrics[tn] =
-					make([]ep.ItemCollectionMetrics,0)
+					make([]*itemcollectionmetrics.ItemCollectionMetrics,0)
 			}
 			all.ItemCollectionMetrics[tn] = append(all.ItemCollectionMetrics[tn],icm)
 		}
@@ -283,7 +253,7 @@ func combineResponseMetadata(all,this *Response) (error) {
 // Callers for this method should be of len QUERY_LIM or less (see DoBatchWrites()).
 // This is different than EndpointReq in that it will extract UnprocessedKeys and
 // form new BatchWriteItem's based on those, and combine any results.
-func (b BatchWriteItem) RetryBatchWrite(depth int) (string,int,error) {
+func (b *BatchWriteItem) RetryBatchWrite(depth int) (string,int,error) {
 	if depth > RECURSE_LIM {
 		e := fmt.Sprintf("batch_write_item.RetryBatchWrite: recursion depth exceeded")
 		return "",0,errors.New(e)

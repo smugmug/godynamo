@@ -2,10 +2,12 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	"encoding/json"
-	ep "github.com/smugmug/godynamo/endpoint"
 	scan "github.com/smugmug/godynamo/endpoints/scan"
 	conf_iam "github.com/smugmug/godynamo/conf_iam"
+	"github.com/smugmug/godynamo/types/attributevalue"
+	"github.com/smugmug/godynamo/types/condition"
 	"github.com/smugmug/godynamo/conf"
 	"github.com/smugmug/godynamo/conf_file"
 	"log"
@@ -37,12 +39,21 @@ func main() {
 	tn := "test-godynamo-livetest"
 	s.TableName = tn
 	k_v1 := fmt.Sprintf("AHashKey%d",100)
-	s.ScanFilter["TheHashKey"] =
-		scan.ScanFilter{AttributeValueList:[]ep.AttributeValue{ep.AttributeValue{S:k_v1}},
-		ComparisonOperator:scan.OP_EQ}
+
+	kc := condition.NewCondition()
+	kc.AttributeValueList = make([]*attributevalue.AttributeValue,1)
+	kc.AttributeValueList[0] = &attributevalue.AttributeValue{S:k_v1}
+	kc.ComparisonOperator = scan.OP_EQ
+
+	s.ScanFilter["TheHashKey"] = kc
 	jsonstr,_ := json.Marshal(s)
 	fmt.Printf("JSON:%s\n",string(jsonstr))
 	body,code,err := s.EndpointReq()
+	if err != nil || code != http.StatusOK {
+		fmt.Printf("scan failed %d %v %s\n",code,err,body)
+	}
+	fmt.Printf("%v\n%v\n%v\n",body,code,err)
+
 	var r scan.Response
 	um_err := json.Unmarshal([]byte(body),&r)
 	if um_err != nil {
@@ -50,23 +61,29 @@ func main() {
 		fmt.Printf("%s\n",e)
 	}
 
-	fmt.Printf("%v\n%v\n%v\n",body,code,err)
 	s = scan.NewScan()
 	s.TableName = tn
 	jsonstr,_ = json.Marshal(s)
 	fmt.Printf("JSON:%s\n",string(jsonstr))
 	body,code,err = s.EndpointReq()
+	if err != nil || code != http.StatusOK {
+		fmt.Printf("scan failed %d %v %s\n",code,err,body)
+	}
 	fmt.Printf("%v\n%v\n%v\n",body,code,err)
+
 	um_err = json.Unmarshal([]byte(body),&r)
 	if um_err != nil {
 		e := fmt.Sprintf("unmarshal Response: %v",um_err)
 		fmt.Printf("%s\n",e)
 	}
 
-	s.ScanFilter["SomeValue"] =
-		scan.ScanFilter{AttributeValueList:[]ep.AttributeValue{
-		ep.AttributeValue{N:"270"},ep.AttributeValue{N:"290"}},
-		ComparisonOperator:scan.OP_BETWEEN}
+	kc = condition.NewCondition()
+	kc.AttributeValueList = make([]*attributevalue.AttributeValue,2)
+	kc.AttributeValueList[0] = &attributevalue.AttributeValue{N:"270"}
+	kc.AttributeValueList[1] = &attributevalue.AttributeValue{N:"290"}
+	kc.ComparisonOperator = scan.OP_BETWEEN
+	s.ScanFilter["SomeValue"] = kc
+
 	jsonstr,_ = json.Marshal(s)
 	fmt.Printf("JSON:%s\n",string(jsonstr))
 	body,code,err = s.EndpointReq()
@@ -78,12 +95,16 @@ func main() {
 	}
 	k_v2 := fmt.Sprintf("AHashKey%d",290)
 	r_v2 := fmt.Sprintf("%d",290)
-	s.ExclusiveStartKey["TheHashKey"] = ep.AttributeValue{S:k_v2}
-	s.ExclusiveStartKey["TheRangeKey"] = ep.AttributeValue{N:r_v2}
+	s.ExclusiveStartKey["TheHashKey"] = &attributevalue.AttributeValue{S:k_v2}
+	s.ExclusiveStartKey["TheRangeKey"] = &attributevalue.AttributeValue{N:r_v2}
 	jsonstr,_ = json.Marshal(s)
 	fmt.Printf("JSON:%s\n",string(jsonstr))
 	body,code,err = s.EndpointReq()
+	if err != nil || code != http.StatusOK {
+		fmt.Printf("scan failed %d %v %s\n",code,err,body)
+	}
 	fmt.Printf("%v\n%v\n%v\n",body,code,err)
+
 	um_err = json.Unmarshal([]byte(body),&r)
 	if um_err != nil {
 		e := fmt.Sprintf("unmarshal Response: %v",um_err)

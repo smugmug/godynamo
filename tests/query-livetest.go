@@ -2,10 +2,13 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	"encoding/json"
 	ep "github.com/smugmug/godynamo/endpoint"
 	query "github.com/smugmug/godynamo/endpoints/query"
 	conf_iam "github.com/smugmug/godynamo/conf_iam"
+	"github.com/smugmug/godynamo/types/attributevalue"
+	"github.com/smugmug/godynamo/types/condition"
 	"github.com/smugmug/godynamo/conf"
 	"github.com/smugmug/godynamo/conf_file"
 	"log"
@@ -38,14 +41,17 @@ func main() {
 	q.TableName = tn
 	q.Select = ep.SELECT_ALL
 	k_v1 := fmt.Sprintf("AHashKey%d",100)
-	var kc query.KeyCondition
-	kc.AttributeValueList = make([]ep.AttributeValue,1)
-	kc.AttributeValueList[0] = ep.AttributeValue{S:k_v1}
+	kc := condition.NewCondition()
+	kc.AttributeValueList = make([]*attributevalue.AttributeValue,1)
+	kc.AttributeValueList[0] = &attributevalue.AttributeValue{S:k_v1}
 	kc.ComparisonOperator = query.OP_EQ
 	q.Limit = 10000
 	q.KeyConditions["TheHashKey"] = kc
 	json,_ := json.Marshal(q)
 	fmt.Printf("JSON:%s\n",string(json))
 	body,code,err := q.EndpointReq()
+	if err != nil || code != http.StatusOK {
+		fmt.Printf("query failed %d %v %s\n",code,err,body)
+	}
 	fmt.Printf("%v\n%v\n%v\n",body,code,err)
 }

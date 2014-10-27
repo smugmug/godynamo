@@ -3,11 +3,16 @@ package main
 import (
 	"fmt"
 	"os"
+	"net/http"
 	"encoding/json"
 	create "github.com/smugmug/godynamo/endpoints/create_table"
 	list "github.com/smugmug/godynamo/endpoints/list_tables"
 	desc "github.com/smugmug/godynamo/endpoints/describe_table"
 	ep "github.com/smugmug/godynamo/endpoint"
+	"github.com/smugmug/godynamo/types/aws_strings"
+	"github.com/smugmug/godynamo/types/localsecondaryindex"
+	"github.com/smugmug/godynamo/types/attributedefinition"
+	"github.com/smugmug/godynamo/types/keydefinition"
 	conf_iam "github.com/smugmug/godynamo/conf_iam"
 	"github.com/smugmug/godynamo/conf"
 	"github.com/smugmug/godynamo/conf_file"
@@ -44,27 +49,29 @@ func main() {
 	var body string
 
 	// CREATE TABLE
-	var create1 create.Create
+	create1 := create.NewCreateTable()
 	create1.TableName = tablename1
 	create1.ProvisionedThroughput.ReadCapacityUnits = 100
 	create1.ProvisionedThroughput.WriteCapacityUnits = 100
+
 	create1.AttributeDefinitions = append(create1.AttributeDefinitions,
-		ep.AttributeDefinition{AttributeName:"TheHashKey",AttributeType:ep.S})
+		attributedefinition.AttributeDefinition{AttributeName:"TheHashKey",AttributeType:ep.S})
 	create1.AttributeDefinitions = append(create1.AttributeDefinitions,
-		ep.AttributeDefinition{AttributeName:"TheRangeKey",AttributeType:ep.N})
+		attributedefinition.AttributeDefinition{AttributeName:"TheRangeKey",AttributeType:ep.N})
 	create1.AttributeDefinitions = append(create1.AttributeDefinitions,
-		ep.AttributeDefinition{AttributeName:"AnAttrName",AttributeType:ep.S})
+		attributedefinition.AttributeDefinition{AttributeName:"AnAttrName",AttributeType:ep.S})
 	create1.KeySchema = append(create1.KeySchema,
-		ep.KeyDefinition{AttributeName:"TheHashKey",KeyType:ep.HASH})
+		keydefinition.KeyDefinition{AttributeName:"TheHashKey",KeyType:ep.HASH})
 	create1.KeySchema = append(create1.KeySchema,
-		ep.KeyDefinition{AttributeName:"TheRangeKey",KeyType:ep.RANGE})
-	lsi := ep.NewLocalSecondaryIndex()
+		keydefinition.KeyDefinition{AttributeName:"TheRangeKey",KeyType:ep.RANGE})
+
+	lsi := localsecondaryindex.NewLocalSecondaryIndex()
 	lsi.IndexName = "AnAttrIndex"
-	lsi.Projection.ProjectionType = ep.KEYS_ONLY
+	lsi.Projection.ProjectionType = aws_strings.KEYS_ONLY
 	lsi.KeySchema = append(lsi.KeySchema,
-		ep.KeyDefinition{AttributeName:"TheHashKey",KeyType:ep.HASH})
+		keydefinition.KeyDefinition{AttributeName:"TheHashKey",KeyType:ep.HASH})
 	lsi.KeySchema = append(lsi.KeySchema,
-		ep.KeyDefinition{AttributeName:"AnAttrName",KeyType:ep.RANGE})
+		keydefinition.KeyDefinition{AttributeName:"AnAttrName",KeyType:ep.RANGE})
 	create1.LocalSecondaryIndexes = append(create1.LocalSecondaryIndexes,*lsi)
 
 	create_json,create_json_err := json.Marshal(create1)
@@ -75,13 +82,21 @@ func main() {
 	fmt.Printf("%s\n",string(create_json))
 	fmt.Printf("%v\n",create1)
 
-	cbody,ccode,cerr := create1.EndpointReq()
-	fmt.Printf("%v\n%v\n,%v\n",cbody,ccode,cerr)
+	body,code,err = create1.EndpointReq()
+	fmt.Printf("%v\n%v\n,%v\n",body,code,err)
+	if err != nil || code != http.StatusOK {
+		fmt.Printf("create failed %d %v %s\n",code,err,body)
+		os.Exit(1)
+	}
 
 	var desc1 desc.Describe
 	desc1.TableName = tablename1
 	body,code,err = desc1.EndpointReq()
 	fmt.Printf("desc:%v\n%v\n,%v\n",body,code,err)
+	if err != nil || code != http.StatusOK {
+		fmt.Printf("desc failed %d %v %s\n",code,err,body)
+		os.Exit(1)
+	}
 
 	// WAIT FOR IT TO BE ACTIVE
 	fmt.Printf("checking for ACTIVE status for table....\n")
@@ -96,7 +111,10 @@ func main() {
 	var l list.List
 	l.ExclusiveStartTableName = ""
 	l.Limit = 100
-	lbody,lcode,lerr := l.EndpointReq()
-	fmt.Printf("%v\n%v\n,%v\n",lbody,lcode,lerr)
-
+	body,code,err = l.EndpointReq()
+	if err != nil || code != http.StatusOK {
+		fmt.Printf("list failed %d %v %s\n",code,err,body)
+		os.Exit(1)
+	}
+	fmt.Printf("%v\n%v\n,%v\n",body,code,err)
 }

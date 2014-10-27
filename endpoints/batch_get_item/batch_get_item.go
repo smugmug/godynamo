@@ -1,27 +1,3 @@
-// Copyright (c) 2013,2014 SmugMug, Inc. All rights reserved.
-// 
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are
-// met:
-//     * Redistributions of source code must retain the above copyright
-//       notice, this list of conditions and the following disclaimer.
-//     * Redistributions in binary form must reproduce the above
-//       copyright notice, this list of conditions and the following
-//       disclaimer in the documentation and/or other materials provided
-//       with the distribution.
-// 
-// THIS SOFTWARE IS PROVIDED BY SMUGMUG, INC. ``AS IS'' AND ANY
-// EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL SMUGMUG, INC. BE LIABLE FOR
-// ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
-// GOODS OR SERVICES;LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
-// IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
-// OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-// ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
 // Support for the DynamoDB BatchGetItem endpoint.
 // This package offers support for request sizes that exceed AWS limits.
 //
@@ -38,6 +14,11 @@ import (
 	"fmt"
 	"github.com/smugmug/godynamo/authreq"
 	"github.com/smugmug/godynamo/aws_const"
+	"github.com/smugmug/godynamo/types/attributestoget"
+	"github.com/smugmug/godynamo/types/attributevalue"
+	"github.com/smugmug/godynamo/types/item"
+	"github.com/smugmug/godynamo/types/expressionattributenames"
+	"github.com/smugmug/godynamo/types/capacity"
 	ep "github.com/smugmug/godynamo/endpoint"
 )
 
@@ -52,16 +33,18 @@ const (
 
 // RequestInstance indicates what Keys to retrieve for a Table.
 type RequestInstance struct {
-	AttributesToGet ep.AttributesToGet
-	ConsistentRead bool
-	Keys []ep.Item
+	AttributesToGet attributestoget.AttributesToGet `json:",omitempty"`
+	ConsistentRead bool `json:",omitempty"`
+	ExpressionAttributeNames expressionattributenames.ExpressionAttributeNames `json:",omitempty"`
+	Keys []item.Item
+	ProjectionExpression string `json:",omitempty"`
 }
 
-// NewRequestInstance will return a pointer to an initialized RequestInstance struct.
 func NewRequestInstance() (*RequestInstance) {
 	r := new(RequestInstance)
-	r.AttributesToGet = make(ep.AttributesToGet,0)
-	r.Keys = make([]ep.Item,0)
+	r.AttributesToGet = attributestoget.NewAttributesToGet()
+	r.ExpressionAttributeNames = expressionattributenames.NewExpressionAttributeNames()
+	r.Keys = make([]item.Item,0)
 	return r
 }
 
@@ -70,10 +53,9 @@ type Table2Requests map[string] *RequestInstance
 
 type BatchGetItem struct {
 	RequestItems Table2Requests
-	ReturnConsumedCapacity ep.ReturnConsumedCapacity
+	ReturnConsumedCapacity string `json:",omitempty"`
 }
 
-// NewBatchGetItem will return a pointer to an initialized BatchGetItem struct.
 func NewBatchGetItem() (*BatchGetItem) {
 	b := new(BatchGetItem)
 	b.RequestItems = make(Table2Requests)
@@ -83,16 +65,15 @@ func NewBatchGetItem() (*BatchGetItem) {
 type Request BatchGetItem
 
 type Response struct {
-	ConsumedCapacity []ep.ConsumedCapacity
-	Responses map[string] []ep.Item
+	ConsumedCapacity []capacity.ConsumedCapacity
+	Responses map[string] []item.Item
 	UnprocessedKeys Table2Requests
 }
 
-// NewResponse will return a pointer to an initialized Response struct.
 func NewResponse() (*Response) {
 	r := new(Response)
-	r.ConsumedCapacity      = make([]ep.ConsumedCapacity,0)
-	r.Responses             = make(map[string] []ep.Item)
+	r.ConsumedCapacity      = make([]capacity.ConsumedCapacity,0)
+	r.Responses             = make(map[string] []item.Item)
 	r.UnprocessedKeys       = make(Table2Requests)
 	return r
 }
@@ -101,7 +82,7 @@ func NewResponse() (*Response) {
 // excceds the stated AWS limits. This function splits an arbitrarily-sized
 // BatchGetItems into a list of BatchGetItem structs that are limited
 // to the upper bound stated by AWS.
-func Split(b BatchGetItem) ([]BatchGetItem,error) {
+func Split(b *BatchGetItem) ([]BatchGetItem,error) {
 	bs := make([]BatchGetItem,0)
 	bi := NewBatchGetItem()
 	i := 0
@@ -115,7 +96,8 @@ func Split(b BatchGetItem) ([]BatchGetItem,error) {
 			}
 			if _,tn_in_bi := bi.RequestItems[tn]; !tn_in_bi {
 				bi.RequestItems[tn] = NewRequestInstance()
-				bi.RequestItems[tn].AttributesToGet = make(ep.AttributesToGet,
+				bi.RequestItems[tn].AttributesToGet =
+					make(attributestoget.AttributesToGet,
 					len(b.RequestItems[tn].AttributesToGet))
 				copy(bi.RequestItems[tn].AttributesToGet,
 					b.RequestItems[tn].AttributesToGet)
@@ -130,28 +112,25 @@ func Split(b BatchGetItem) ([]BatchGetItem,error) {
 	return bs,nil
 }
 
-// EndpointReq for BatchGetItem which assumes its BatchGetItem struct instance `b`
-// conforms to AWS limits. Use this if you do not employ arbitrarily-sized BatchGetItems
-// and instead choose to conform to the AWS limits.
-func (b BatchGetItem) EndpointReq() (string,int,error) {
+func (batch_get_item *BatchGetItem) EndpointReq() (string,int,error) {
 	// returns resp_body,code,err
-	if authreq.AUTH_VERSION != authreq.AUTH_V4 {
-		e := fmt.Sprintf("batch_write_item(BatchGetItem).EndpointReq " +
-			"auth must be v4")
-		return "",0,errors.New(e)
+	reqJSON,json_err := json.Marshal(batch_get_item);
+	if json_err != nil {
+		return "",0,json_err
 	}
-	return authreq.RetryReq_V4(&b,BATCHGET_ENDPOINT)
+	return authreq.RetryReqJSON_V4(reqJSON,BATCHGET_ENDPOINT)
 }
 
-func (req Request) EndpointReq() (string,int,error) {
-	return (BatchGetItem(req)).EndpointReq()
+func (req *Request) EndpointReq() (string,int,error) {
+	batch_get_item := BatchGetItem(*req)
+	return batch_get_item.EndpointReq()
 }
 
 // DoBatchGet is an endpoint request handler for BatchGetItem that supports arbitrarily-sized
 // BatchGetItem struct instances. These are split in a list of conforming BatchGetItem instances
 // via `Split` and the concurrently dispatched to DynamoDB, with the resulting responses stitched
 // together. May break your provisioning.
-func (b BatchGetItem) DoBatchGet() (string,int,error) {
+func (b *BatchGetItem) DoBatchGet() (string,int,error) {
 	var err error
 	code := http.StatusOK
 	body := ""
@@ -197,22 +176,28 @@ func (b BatchGetItem) DoBatchGet() (string,int,error) {
 
 // unprocessedKeys2BatchGetItems will take a response from DynamoDB that indicates some Keys
 // require resubmitting, and turns these into a BatchGetItem struct instance.
-func unprocessedKeys2BatchGetItems(req BatchGetItem,resp *Response) (*BatchGetItem,error) {
+func unprocessedKeys2BatchGetItems(req *BatchGetItem,resp *Response) (*BatchGetItem,error) {
 	b := NewBatchGetItem()
 	b.ReturnConsumedCapacity = req.ReturnConsumedCapacity
 	for tn,_ := range resp.UnprocessedKeys {
 		if _,tn_in_b := b.RequestItems[tn]; !tn_in_b {
 			b.RequestItems[tn] = NewRequestInstance()
-			b.RequestItems[tn].AttributesToGet = make(ep.AttributesToGet,
+			b.RequestItems[tn].AttributesToGet = make(
+				attributestoget.AttributesToGet,
 				len(resp.UnprocessedKeys[tn].AttributesToGet))
 			copy(b.RequestItems[tn].AttributesToGet,
 				resp.UnprocessedKeys[tn].AttributesToGet)
 			b.RequestItems[tn].ConsistentRead =
 				resp.UnprocessedKeys[tn].ConsistentRead
-			for _,item := range resp.UnprocessedKeys[tn].Keys {
-				item_cp := make(ep.Item)
-				for k,v := range item {
-					item_cp[k] = v
+			for _,item_src := range resp.UnprocessedKeys[tn].Keys {
+				item_cp := item.NewItem()
+				for k,v := range item_src {
+					v_cp := attributevalue.NewAttributeValue()
+					cp_err := v.Copy(v_cp)
+					if cp_err != nil {
+						return nil,cp_err
+					}
+					item_cp[k] = v_cp
 				}
 				b.RequestItems[tn].Keys = append(b.RequestItems[tn].Keys,item_cp)
 			}
@@ -223,9 +208,9 @@ func unprocessedKeys2BatchGetItems(req BatchGetItem,resp *Response) (*BatchGetIt
 
 // Add ConsumedCapacity from "this" Response to "all", the eventual stitched Response.
 func combineResponseMetadata(all,this *Response) (error) {
-	combinedConsumedCapacity := make([]ep.ConsumedCapacity,0)
+	combinedConsumedCapacity := make([]capacity.ConsumedCapacity,0)
 	for _,this_cc := range this.ConsumedCapacity {
-		var cc ep.ConsumedCapacity
+		var cc capacity.ConsumedCapacity
 		cc.TableName = this_cc.TableName
 		cc.CapacityUnits = this_cc.CapacityUnits
 		for _,all_cc := range all.ConsumedCapacity {
@@ -243,12 +228,17 @@ func combineResponseMetadata(all,this *Response) (error) {
 func combineResponses(all,this *Response) (error) {
 	for tn,_ := range this.Responses {
 		if _,tn_in_all := all.Responses[tn]; !tn_in_all {
-			all.Responses[tn] = make([]ep.Item,0)
+			all.Responses[tn] = make([]item.Item,0)
 		}
-		for _,item := range this.Responses[tn] {
-			item_cp := make(ep.Item)
-			for k,v := range item {
-				item_cp[k] = v
+		for _,item_src := range this.Responses[tn] {
+			item_cp := item.NewItem()
+			for k,v := range item_src {
+				v_cp := attributevalue.NewAttributeValue()
+				cp_err := v.Copy(v_cp)
+				if cp_err != nil {
+					return cp_err
+				}
+				item_cp[k] = v_cp
 			}
 			all.Responses[tn] = append(all.Responses[tn],item_cp)
 		}
@@ -260,7 +250,7 @@ func combineResponses(all,this *Response) (error) {
 // Callers for this method should be of len QUERY_LIM or less (see DoBatchGets()).
 // This is different than EndpointReq in that it will extract UnprocessedKeys and
 // form new BatchGetItem's based on those, and combine any results.
-func (b BatchGetItem) RetryBatchGet(depth int) (string,int,error) {
+func (b *BatchGetItem) RetryBatchGet(depth int) (string,int,error) {
 	if depth > RECURSE_LIM {
 		e := fmt.Sprintf("batch_get_item.RetryBatchGet: recursion depth exceeded")
 		return "",0,errors.New(e)

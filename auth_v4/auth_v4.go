@@ -1,27 +1,3 @@
-// Copyright (c) 2013,2014 SmugMug, Inc. All rights reserved.
-// 
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are
-// met:
-//     * Redistributions of source code must retain the above copyright
-//       notice, this list of conditions and the following disclaimer.
-//     * Redistributions in binary form must reproduce the above
-//       copyright notice, this list of conditions and the following
-//       disclaimer in the documentation and/or other materials provided
-//       with the distribution.
-// 
-// THIS SOFTWARE IS PROVIDED BY SMUGMUG, INC. ``AS IS'' AND ANY
-// EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL SMUGMUG, INC. BE LIABLE FOR
-// ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
-// GOODS OR SERVICES;LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
-// IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
-// OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-// ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
 // Manages AWS Auth v4 requests to DynamoDB.
 // See http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html
 // for more information on v4 signed requests. For examples, see any of
@@ -56,7 +32,11 @@ var Client *http.Client
 
 // Initialize package-scoped client.
 func init() {
-	tr := &http.Transport{ResponseHeaderTimeout: time.Duration(20) * time.Second}
+	// The timeout seems too-long, but it accomodates the exponential decay retry loop.
+	// Programs using this can either change this directly or use goroutine timeouts
+	// to impose a local minimum.
+	tr := &http.Transport{MaxIdleConnsPerHost:250,
+		ResponseHeaderTimeout: time.Duration(20) * time.Second}
 	Client = &http.Client{Transport:tr}
 }
 
@@ -195,8 +175,9 @@ func RawReq(reqJSON []byte,amzTarget string) (string,string,int,error) {
 	if rsp_err != nil {
 		return "","",0,rsp_err
 	}
-	defer response.Body.Close()
+	// defer response.Body.Close()
 	respbody,read_err := ioutil.ReadAll(response.Body)
+	response.Body.Close()
 	if read_err != nil && read_err != io.EOF {
 		e := fmt.Sprintf("auth_v4.RawReq:err reading resp body: %s",read_err.Error())
 		return "","",0,errors.New(e)
@@ -215,4 +196,3 @@ func RawReq(reqJSON []byte,amzTarget string) (string,string,int,error) {
 func Req(reqJSON []byte,amzTarget string) (string,string,int,error) {
 	return RawReq(reqJSON,amzTarget)
 }
-

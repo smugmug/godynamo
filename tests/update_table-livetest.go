@@ -43,7 +43,7 @@ func main() {
 	var err error
 	var body string
 
-        var update_table1 update_table.Request
+	update_table1 := update_table.NewUpdateTable()
         update_table1.TableName = tablename1
         update_table1.ProvisionedThroughput.ReadCapacityUnits = 200
         update_table1.ProvisionedThroughput.WriteCapacityUnits = 200
@@ -63,9 +63,13 @@ func main() {
 	}
 	fmt.Printf("ACTIVE:%v\n",active)
 
-	var desc1 desc.Describe
+	var desc1 desc.DescribeTable
 	desc1.TableName = tablename1
 	body,code,err = desc1.EndpointReq()
+	if err != nil || code != http.StatusOK {
+		fmt.Printf("desc failed %d %v %s\n",code,err,body)
+		os.Exit(1)
+	}
 	fmt.Printf("desc:%v\n%v\n,%v\n",body,code,err)
 
 	// WAIT FOR IT TO BE ACTIVE
@@ -81,7 +85,11 @@ func main() {
 	var l list.List
 	l.ExclusiveStartTableName = ""
 	l.Limit = 100
-	lbody,lcode,lerr := l.EndpointReq()
-	fmt.Printf("%v\n%v\n,%v\n",lbody,lcode,lerr)
+	body,code,err = l.EndpointReq()
+	if err != nil || code != http.StatusOK {
+		fmt.Printf("list failed %d %v %s\n",code,err,body)
+		os.Exit(1)
+	}
+	fmt.Printf("%v\n%v\n,%v\n",body,code,err)
 
 }
