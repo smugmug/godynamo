@@ -125,7 +125,7 @@ func GoIAM(ready_chan chan bool) {
 			}()
 		}
 	} else {
-		// signal to the caller than iam roles are selected as a auth mechanism
+		// signal to the caller than iam roles are not selected as a auth mechanism
 		ready_chan <- false
 	}
 }
