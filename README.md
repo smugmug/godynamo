@@ -110,7 +110,10 @@ been initialized properly. You will optionally wish to use IAM support for authe
 Below is some boilerplate to enable both of these in your program:
 
         import (
+          "fmt"
+          "log"
           conf_iam "github.com/smugmug/godynamo/conf_iam"
+          keepalive "github.com/smugmug/godynamo/keepalive"
           "github.com/smugmug/godynamo/conf"
           "github.com/smugmug/godynamo/conf_file"
         )
