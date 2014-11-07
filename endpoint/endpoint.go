@@ -7,67 +7,67 @@
 package endpoint
 
 import (
-	"net/http"
-	"github.com/smugmug/godynamo/types/aws_strings"
-	"github.com/smugmug/godynamo/types/attributevalue"
 	"github.com/smugmug/godynamo/types/attributedefinition"
 	"github.com/smugmug/godynamo/types/attributesresponse"
 	"github.com/smugmug/godynamo/types/attributestoget"
-	"github.com/smugmug/godynamo/types/item"
+	"github.com/smugmug/godynamo/types/attributevalue"
+	"github.com/smugmug/godynamo/types/aws_strings"
 	"github.com/smugmug/godynamo/types/capacity"
-	"github.com/smugmug/godynamo/types/itemcollectionmetrics"
 	"github.com/smugmug/godynamo/types/expected"
-	"github.com/smugmug/godynamo/types/returnvalues"
-	"github.com/smugmug/godynamo/types/provisionedthroughput"
+	"github.com/smugmug/godynamo/types/globalsecondaryindex"
+	"github.com/smugmug/godynamo/types/item"
+	"github.com/smugmug/godynamo/types/itemcollectionmetrics"
 	"github.com/smugmug/godynamo/types/keydefinition"
 	"github.com/smugmug/godynamo/types/localsecondaryindex"
-	"github.com/smugmug/godynamo/types/globalsecondaryindex"
 	"github.com/smugmug/godynamo/types/nullable"
+	"github.com/smugmug/godynamo/types/provisionedthroughput"
+	"github.com/smugmug/godynamo/types/returnvalues"
+	"net/http"
 )
 
 // re-exported consts for backwards compatibility
 const (
-	HASH			= aws_strings.HASH
-	RANGE			= aws_strings.RANGE
-	HASH_KEY_ELEMENT	= aws_strings.HASH_KEY_ELEMENT
-	RANGE_KEY_ELEMENT	= aws_strings.RANGE_KEY_ELEMENT
-	S			= aws_strings.S
-	N			= aws_strings.N
-	B			= aws_strings.B
-	BOOL			= aws_strings.BOOL
-	NULL			= aws_strings.NULL
-	L			= aws_strings.L
-	M			= aws_strings.M
-	SS			= aws_strings.SS
-	NS			= aws_strings.NS
-	BS			= aws_strings.BS
-	RETVAL_NONE		= aws_strings.RETVAL_NONE
-	RETVAL_ALL_OLD		= aws_strings.RETVAL_ALL_OLD
-	RETVAL_ALL_NEW		= aws_strings.RETVAL_ALL_NEW
-	RETVAL_UPDATED_OLD	= aws_strings.RETVAL_UPDATED_OLD
-	RETVAL_UPDATED_NEW	= aws_strings.RETVAL_UPDATED_NEW
-	ALL			= aws_strings.ALL
-	SIZE			= aws_strings.SIZE
-	TOTAL			= aws_strings.TOTAL
-	KEYS_ONLY		= aws_strings.KEYS_ONLY
-	INCLUDE			= aws_strings.INCLUDE
-	SELECT_ALL		= aws_strings.SELECT_ALL
-	SELECT_PROJECTED	= aws_strings.SELECT_PROJECTED
-	SELECT_SPECIFIC		= aws_strings.SELECT_SPECIFIC
-	SELECT_COUNT		= aws_strings.SELECT_COUNT
-	OP_EQ			= aws_strings.OP_EQ
-	OP_NE			= aws_strings.OP_NE
-	OP_LE			= aws_strings.OP_LE
-	OP_LT			= aws_strings.OP_LT
-	OP_GE			= aws_strings.OP_GE
-	OP_GT			= aws_strings.OP_GT
-	OP_NULL			= aws_strings.OP_NULL
-	OP_NOT_NULL		= aws_strings.OP_NOT_NULL
-	OP_CONTAINS		= aws_strings.OP_CONTAINS
-	OP_NOT_CONTAINS		= aws_strings.OP_NOT_CONTAINS
-	OP_BEGINS_WITH		= aws_strings.OP_BEGINS_WITH
-	OP_IN			= aws_strings.OP_IN
-	OP_BETWEEN		= aws_strings.OP_BETWEEN
+	HASH               = aws_strings.HASH
+	RANGE              = aws_strings.RANGE
+	HASH_KEY_ELEMENT   = aws_strings.HASH_KEY_ELEMENT
+	RANGE_KEY_ELEMENT  = aws_strings.RANGE_KEY_ELEMENT
+	S                  = aws_strings.S
+	N                  = aws_strings.N
+	B                  = aws_strings.B
+	BOOL               = aws_strings.BOOL
+	NULL               = aws_strings.NULL
+	L                  = aws_strings.L
+	M                  = aws_strings.M
+	SS                 = aws_strings.SS
+	NS                 = aws_strings.NS
+	BS                 = aws_strings.BS
+	RETVAL_NONE        = aws_strings.RETVAL_NONE
+	RETVAL_ALL_OLD     = aws_strings.RETVAL_ALL_OLD
+	RETVAL_ALL_NEW     = aws_strings.RETVAL_ALL_NEW
+	RETVAL_UPDATED_OLD = aws_strings.RETVAL_UPDATED_OLD
+	RETVAL_UPDATED_NEW = aws_strings.RETVAL_UPDATED_NEW
+	ALL                = aws_strings.ALL
+	SIZE               = aws_strings.SIZE
+	TOTAL              = aws_strings.TOTAL
+	KEYS_ONLY          = aws_strings.KEYS_ONLY
+	INCLUDE            = aws_strings.INCLUDE
+	SELECT_ALL         = aws_strings.SELECT_ALL
+	SELECT_PROJECTED   = aws_strings.SELECT_PROJECTED
+	SELECT_SPECIFIC    = aws_strings.SELECT_SPECIFIC
+	SELECT_COUNT       = aws_strings.SELECT_COUNT
+	OP_EQ              = aws_strings.OP_EQ
+	OP_NE              = aws_strings.OP_NE
+	OP_LE              = aws_strings.OP_LE
+	OP_LT              = aws_strings.OP_LT
+	OP_GE              = aws_strings.OP_GE
+	OP_GT              = aws_strings.OP_GT
+	OP_NULL            = aws_strings.OP_NULL
+	OP_NOT_NULL        = aws_strings.OP_NOT_NULL
+	OP_CONTAINS        = aws_strings.OP_CONTAINS
+	OP_NOT_CONTAINS    = aws_strings.OP_NOT_CONTAINS
+	OP_BEGINS_WITH     = aws_strings.OP_BEGINS_WITH
+	OP_IN              = aws_strings.OP_IN
+	OP_BETWEEN         = aws_strings.OP_BETWEEN
 )
 
 // re-exported types for backwards compatibility
@@ -132,7 +132,7 @@ type GlobalSecondaryIndexDesc globalsecondaryindex.GlobalSecondaryIndexDesc
 // and an error (or nil). This is the fundamental endpoint interface of
 // GoDynamo.
 type Endpoint interface {
-	EndpointReq() (string,int,error)
+	EndpointReq() (string, int, error)
 }
 
 // Endpoint_Response describes the response from Dynamo for a given request.

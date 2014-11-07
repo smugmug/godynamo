@@ -1,4 +1,3 @@
 package returnvalues
 
-type ReturnValues string 
-
+type ReturnValues string

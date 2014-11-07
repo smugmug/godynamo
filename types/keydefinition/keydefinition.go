@@ -3,7 +3,7 @@ package keydefinition
 
 type KeyDefinition struct {
 	AttributeName string
-	KeyType string
+	KeyType       string
 }
 
 type KeySchema []KeyDefinition

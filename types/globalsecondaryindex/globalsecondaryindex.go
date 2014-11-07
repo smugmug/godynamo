@@ -3,28 +3,28 @@
 package globalsecondaryindex
 
 import (
-	"fmt"
-	"errors"
 	"encoding/json"
-	"github.com/smugmug/godynamo/types/provisionedthroughput"
-	"github.com/smugmug/godynamo/types/keydefinition"
+	"errors"
+	"fmt"
 	"github.com/smugmug/godynamo/types/aws_strings"
+	"github.com/smugmug/godynamo/types/keydefinition"
+	"github.com/smugmug/godynamo/types/provisionedthroughput"
 )
 
 type GlobalSecondaryIndex struct {
-	IndexName string 
-	KeySchema keydefinition.KeySchema 
+	IndexName  string
+	KeySchema  keydefinition.KeySchema
 	Projection struct {
-		NonKeyAttributes []string 
-		ProjectionType string 
+		NonKeyAttributes []string
+		ProjectionType   string
 	}
-	ProvisionedThroughput provisionedthroughput.ProvisionedThroughput 
+	ProvisionedThroughput provisionedthroughput.ProvisionedThroughput
 }
 
-func NewGlobalSecondaryIndex() (*GlobalSecondaryIndex) {
+func NewGlobalSecondaryIndex() *GlobalSecondaryIndex {
 	g := new(GlobalSecondaryIndex)
-	g.KeySchema = make(keydefinition.KeySchema,0)
-	g.Projection.NonKeyAttributes = make([]string,0)
+	g.KeySchema = make(keydefinition.KeySchema, 0)
+	g.Projection.NonKeyAttributes = make([]string, 0)
 	return g
 }
 
@@ -36,8 +36,8 @@ func (g GlobalSecondaryIndex) MarshalJSON() ([]byte, error) {
 	if !(aws_strings.ALL == g.Projection.ProjectionType ||
 		aws_strings.KEYS_ONLY == g.Projection.ProjectionType ||
 		aws_strings.INCLUDE == g.Projection.ProjectionType) {
-		e := fmt.Sprintf("endpoint.GlobalSecondaryIndex.MarshalJSON: " +
-			"ProjectionType %s is not valid",g.Projection.ProjectionType)
+		e := fmt.Sprintf("endpoint.GlobalSecondaryIndex.MarshalJSON: "+
+			"ProjectionType %s is not valid", g.Projection.ProjectionType)
 		return nil, errors.New(e)
 	}
 	if len(g.Projection.NonKeyAttributes) > 20 {
@@ -59,31 +59,31 @@ func (g GlobalSecondaryIndex) MarshalJSON() ([]byte, error) {
 }
 
 type GlobalSecondaryIndexDesc struct {
-	IndexName string
+	IndexName      string
 	IndexSizeBytes uint64
-	IndexStatus string
-	ItemCount uint64
-	KeySchema keydefinition.KeySchema
-	Projection struct {
+	IndexStatus    string
+	ItemCount      uint64
+	KeySchema      keydefinition.KeySchema
+	Projection     struct {
 		NonKeyAttributes []string
-		ProjectionType string
+		ProjectionType   string
 	}
 	ProvisionedThroughput provisionedthroughput.ProvisionedThroughputDesc
 }
 
-func NewGlobalSecondaryIndexDesc() (*GlobalSecondaryIndexDesc) {
+func NewGlobalSecondaryIndexDesc() *GlobalSecondaryIndexDesc {
 	d := new(GlobalSecondaryIndexDesc)
-	d.KeySchema = make(keydefinition.KeySchema,0)
-	d.Projection.NonKeyAttributes = make([]string,0)
+	d.KeySchema = make(keydefinition.KeySchema, 0)
+	d.Projection.NonKeyAttributes = make([]string, 0)
 	return d
 }
 
 type GlobalSecondaryIndexUpdates struct {
-	IndexName string
+	IndexName             string
 	ProvisionedThroughput provisionedthroughput.ProvisionedThroughput
 }
 
-func NewGlobalSecondaryIndexUpdates() (*GlobalSecondaryIndexUpdates) {
+func NewGlobalSecondaryIndexUpdates() *GlobalSecondaryIndexUpdates {
 	g := new(GlobalSecondaryIndexUpdates)
 	return g
 }

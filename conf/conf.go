@@ -16,12 +16,12 @@ const (
 // SDK_conf_File roughly matches the format as used by recent amazon SDKs, plus some additions.
 // These are correlated to the fields you would fill in the conf file
 type SDK_conf_file struct {
-	Extends []string
+	Extends  []string
 	Services struct {
 		Default_settings struct {
 			Params struct {
 				// Traditional AWS access/secret authentication pair.
-				Access_key_id string
+				Access_key_id     string
 				Secret_access_key string
 				// If you use syslogd (a linux or *bsd system), you may set this to "true".
 				// (this is currently unused)
@@ -33,14 +33,14 @@ type SDK_conf_file struct {
 			Host string
 			// Typically http or https, will have "://" appended.
 			Scheme string
-			// Port should correspond to the scheme. 
+			// Port should correspond to the scheme.
 			Port int
 			// If set to true, programs that are written with godynamo may
 			// opt to launch the keepalive goroutine to keep conns open.
 			KeepAlive bool
 			// Your aws zone.
 			Zone string
-			IAM struct {
+			IAM  struct {
 				// Set to true to use IAM authentication.
 				Use_iam bool
 				// The role provider is described in the goawsroles package.
@@ -71,13 +71,13 @@ type AWS_Conf struct {
 	// Traditional AWS authentication pair.
 	Auth struct {
 		AccessKey string
-		Secret string
+		Secret    string
 	}
 	// Dynamo connection data.
 	Network struct {
 		DynamoDB struct {
-			Host      string
-			Scheme    string
+			Host   string
+			Scheme string
 			// Port is converted into a string for internal use, typically
 			// stitching together URL path strings.
 			Port      string
@@ -94,21 +94,21 @@ type AWS_Conf struct {
 	// The IAM role provider info
 	IAM struct {
 		RoleProvider string
-		Watch bool
+		Watch        bool
 		// Tells you where the credentials can be read from
 		File struct {
 			AccessKey string
-			Secret string
-			Token string
-			BaseDir string
+			Secret    string
+			Token     string
+			BaseDir   string
 		}
 		// The credentials themselves, once loaded from Files.* above
 		// these are kept distinct from the global AccessKey and Secret
 		// in the event a caller wants a mixed model
 		Credentials struct {
 			AccessKey string
-			Secret string
-			Token string
+			Secret    string
+			Token     string
 		}
 	}
 	// Lock used when accessing IAM values, which will change during execution.

@@ -1,18 +1,18 @@
 package main
 
 import (
-	"fmt"
-	"net/http"
 	"encoding/json"
-	ep "github.com/smugmug/godynamo/endpoint"
-	query "github.com/smugmug/godynamo/endpoints/query"
-	conf_iam "github.com/smugmug/godynamo/conf_iam"
-	"github.com/smugmug/godynamo/types/attributevalue"
-	"github.com/smugmug/godynamo/types/condition"
+	"fmt"
 	"github.com/smugmug/godynamo/conf"
 	"github.com/smugmug/godynamo/conf_file"
-	"log"
+	conf_iam "github.com/smugmug/godynamo/conf_iam"
+	ep "github.com/smugmug/godynamo/endpoint"
+	query "github.com/smugmug/godynamo/endpoints/query"
 	keepalive "github.com/smugmug/godynamo/keepalive"
+	"github.com/smugmug/godynamo/types/attributevalue"
+	"github.com/smugmug/godynamo/types/condition"
+	"log"
+	"net/http"
 )
 
 func main() {
@@ -32,7 +32,7 @@ func main() {
 	if conf.Vals.UseIAM {
 		iam_ready_chan := make(chan bool)
 		go conf_iam.GoIAM(iam_ready_chan)
-		_ = <- iam_ready_chan
+		_ = <-iam_ready_chan
 	}
 	conf.Vals.ConfLock.RUnlock()
 
@@ -40,18 +40,18 @@ func main() {
 	q := query.NewQuery()
 	q.TableName = tn
 	q.Select = ep.SELECT_ALL
-	k_v1 := fmt.Sprintf("AHashKey%d",100)
+	k_v1 := fmt.Sprintf("AHashKey%d", 100)
 	kc := condition.NewCondition()
-	kc.AttributeValueList = make([]*attributevalue.AttributeValue,1)
-	kc.AttributeValueList[0] = &attributevalue.AttributeValue{S:k_v1}
+	kc.AttributeValueList = make([]*attributevalue.AttributeValue, 1)
+	kc.AttributeValueList[0] = &attributevalue.AttributeValue{S: k_v1}
 	kc.ComparisonOperator = query.OP_EQ
 	q.Limit = 10000
 	q.KeyConditions["TheHashKey"] = kc
-	json,_ := json.Marshal(q)
-	fmt.Printf("JSON:%s\n",string(json))
-	body,code,err := q.EndpointReq()
+	json, _ := json.Marshal(q)
+	fmt.Printf("JSON:%s\n", string(json))
+	body, code, err := q.EndpointReq()
 	if err != nil || code != http.StatusOK {
-		fmt.Printf("query failed %d %v %s\n",code,err,body)
+		fmt.Printf("query failed %d %v %s\n", code, err, body)
 	}
-	fmt.Printf("%v\n%v\n%v\n",body,code,err)
+	fmt.Printf("%v\n%v\n%v\n", body, code, err)
 }

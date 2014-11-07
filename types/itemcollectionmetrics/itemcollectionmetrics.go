@@ -7,23 +7,22 @@ import (
 )
 
 type ItemCollectionMetrics struct {
-	ItemCollectionKey attributevalue.AttributeValueMap
+	ItemCollectionKey   attributevalue.AttributeValueMap
 	SizeEstimateRangeGB [2]uint64
 }
 
-func NewItemCollectionMetrics() (*ItemCollectionMetrics) {
+func NewItemCollectionMetrics() *ItemCollectionMetrics {
 	i := new(ItemCollectionMetrics)
 	i.ItemCollectionKey = attributevalue.NewAttributeValueMap()
 	return i
 }
 
 // used by BatchWriteItem
-type ItemCollectionMetricsMap map[string] []*ItemCollectionMetrics
+type ItemCollectionMetricsMap map[string][]*ItemCollectionMetrics
 
-func NewItemCollectionMetricsMap() (ItemCollectionMetricsMap) {
-	i := make(map[string] []*ItemCollectionMetrics)
+func NewItemCollectionMetricsMap() ItemCollectionMetricsMap {
+	i := make(map[string][]*ItemCollectionMetrics)
 	return i
 }
 
 type ReturnItemCollectionMetrics string
-

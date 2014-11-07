@@ -9,20 +9,19 @@ type ConsumedCapacityUnit_struct struct {
 }
 
 type ConsumedCapacity struct {
-	CapacityUnits ConsumedCapacityUnit `json:",omitempty"`
-	GlobalSecondaryIndexes map[string] ConsumedCapacityUnit_struct `json:",omitempty"`
-	LocalSecondaryIndexes map[string] ConsumedCapacityUnit_struct `json:",omitempty"`
-	Table *ConsumedCapacityUnit_struct `json:",omitempty"`
-	TableName string `json:",omitempty"`
+	CapacityUnits          ConsumedCapacityUnit                   `json:",omitempty"`
+	GlobalSecondaryIndexes map[string]ConsumedCapacityUnit_struct `json:",omitempty"`
+	LocalSecondaryIndexes  map[string]ConsumedCapacityUnit_struct `json:",omitempty"`
+	Table                  *ConsumedCapacityUnit_struct           `json:",omitempty"`
+	TableName              string                                 `json:",omitempty"`
 }
 
-func NewConsumedCapacity() (*ConsumedCapacity) {
+func NewConsumedCapacity() *ConsumedCapacity {
 	c := new(ConsumedCapacity)
-	c.GlobalSecondaryIndexes = make(map[string] ConsumedCapacityUnit_struct)
-	c.LocalSecondaryIndexes = make(map[string] ConsumedCapacityUnit_struct)
+	c.GlobalSecondaryIndexes = make(map[string]ConsumedCapacityUnit_struct)
+	c.LocalSecondaryIndexes = make(map[string]ConsumedCapacityUnit_struct)
 	c.Table = new(ConsumedCapacityUnit_struct)
 	return c
 }
 
 type ReturnConsumedCapacity string
-

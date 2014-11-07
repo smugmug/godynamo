@@ -28,7 +28,7 @@ type Item attributevalue.AttributeValueMap
 type item Item
 
 // Item is already a reference type
-func NewItem() (Item) {
+func NewItem() Item {
 	a := attributevalue.NewAttributeValueMap()
 	return Item(a)
 }
@@ -37,15 +37,14 @@ func NewItem() (Item) {
 // This is currently provided instead of the lossy translation advocated by the
 // JSON document mapping as described by AWS.
 type ItemLike interface {
-	ToItem(interface {}) (Item,error)
-	FromItem(Item) (interface {},error)
+	ToItem(interface{}) (Item, error)
+	FromItem(Item) (interface{}, error)
 }
 
 // GetItem and UpdateItem share a Key type which is another alias to AttributeValueMap
 type Key attributevalue.AttributeValueMap
 
-func NewKey() (Key) {
+func NewKey() Key {
 	a := attributevalue.NewAttributeValueMap()
 	return Key(a)
 }
-

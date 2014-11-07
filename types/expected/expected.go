@@ -4,14 +4,14 @@
 package expected
 
 import (
-	"errors"
 	"encoding/json"
+	"errors"
 	"github.com/smugmug/godynamo/types/attributevalue"
 )
 
-type Expected map[string] *Constraints
+type Expected map[string]*Constraints
 
-func NewExpected() (Expected) {
+func NewExpected() Expected {
 	e := make(Expected)
 	return e
 }
@@ -19,26 +19,26 @@ func NewExpected() (Expected) {
 type Constraints struct {
 	AttributeValueList []*attributevalue.AttributeValue
 	ComparisonOperator string
-	Value *attributevalue.AttributeValue
-	Exists *bool
+	Value              *attributevalue.AttributeValue
+	Exists             *bool
 }
 
-func NewConstraints() (*Constraints) {
+func NewConstraints() *Constraints {
 	c := new(Constraints)
 	c.Exists = new(bool)
 	c.Value = attributevalue.NewAttributeValue()
-	c.AttributeValueList = make([]*attributevalue.AttributeValue,0)
+	c.AttributeValueList = make([]*attributevalue.AttributeValue, 0)
 	return c
 }
 
 type constraints Constraints
 
-func (c *Constraints) UnmarshalJSON (data []byte) error {
+func (c *Constraints) UnmarshalJSON(data []byte) error {
 	if c == nil {
 		return errors.New("pointer receiver for unmarshal is nil")
 	}
 	var ci constraints
-	t_err := json.Unmarshal(data,&ci)
+	t_err := json.Unmarshal(data, &ci)
 	if t_err != nil {
 		return t_err
 	}
@@ -47,7 +47,6 @@ func (c *Constraints) UnmarshalJSON (data []byte) error {
 		c.Exists = new(bool)
 	}
 
-	
 	if ci.Exists == nil {
 		*c.Exists = true
 	} else {
@@ -64,8 +63,8 @@ func (c *Constraints) UnmarshalJSON (data []byte) error {
 
 	l_ci_avl := len(ci.AttributeValueList)
 	if l_ci_avl != 0 {
-		c.AttributeValueList = make([]*attributevalue.AttributeValue,l_ci_avl)
-		for i,_ := range ci.AttributeValueList {
+		c.AttributeValueList = make([]*attributevalue.AttributeValue, l_ci_avl)
+		for i, _ := range ci.AttributeValueList {
 			c.AttributeValueList[i] = attributevalue.NewAttributeValue()
 			cp_err := ci.AttributeValueList[i].Copy(c.AttributeValueList[i])
 			if cp_err != nil {
@@ -78,7 +77,7 @@ func (c *Constraints) UnmarshalJSON (data []byte) error {
 
 func (c Constraints) MarshalJSON() ([]byte, error) {
 	var ci constraints
-	if (c.Exists != nil) {
+	if c.Exists != nil {
 		ci.Exists = new(bool)
 		*ci.Exists = *c.Exists
 	}
