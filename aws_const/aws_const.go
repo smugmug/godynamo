@@ -1,4 +1,4 @@
-// A colelction of consts reused in various packages.
+// A collection of consts reused in various packages.
 package aws_const
 
 const (
