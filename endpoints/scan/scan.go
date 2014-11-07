@@ -10,13 +10,13 @@ import (
 	"encoding/json"
 	"github.com/smugmug/godynamo/authreq"
 	"github.com/smugmug/godynamo/aws_const"
-	"github.com/smugmug/godynamo/types/item"
-	"github.com/smugmug/godynamo/types/capacity"
 	"github.com/smugmug/godynamo/types/attributestoget"
 	"github.com/smugmug/godynamo/types/attributevalue"
+	"github.com/smugmug/godynamo/types/aws_strings"
+	"github.com/smugmug/godynamo/types/capacity"
 	"github.com/smugmug/godynamo/types/condition"
 	"github.com/smugmug/godynamo/types/expressionattributenames"
-	"github.com/smugmug/godynamo/types/aws_strings"
+	"github.com/smugmug/godynamo/types/item"
 )
 
 const (
@@ -41,23 +41,23 @@ const (
 type ComparisonOperator string
 
 type Scan struct {
-	AttributesToGet attributestoget.AttributesToGet `json:",omitempty"`
-	ConditionalOperator string `json:",omitempty"`
-	ExclusiveStartKey attributevalue.AttributeValueMap `json:",omitempty"`
-	ExpressionAttributeNames expressionattributenames.ExpressionAttributeNames `json:",omitempty"`
-	ExpressionAttributeValues attributevalue.AttributeValueMap `json:",omitempty"`
-	FilterExpression string `json:",omitempty"`
-	Limit uint64 `json:",omitempty"`
-	ProjectionExpression string `json:",omitempty"`
-	ReturnConsumedCapacity string `json:",omitempty"`
-	ScanFilter condition.Conditions
-	Segment uint64 `json:",omitempty"`
-	Select string `json:",omitempty"`
-	TableName string
-	TotalSegments uint64 `json:",omitempty"`
+	AttributesToGet           attributestoget.AttributesToGet                   `json:",omitempty"`
+	ConditionalOperator       string                                            `json:",omitempty"`
+	ExclusiveStartKey         attributevalue.AttributeValueMap                  `json:",omitempty"`
+	ExpressionAttributeNames  expressionattributenames.ExpressionAttributeNames `json:",omitempty"`
+	ExpressionAttributeValues attributevalue.AttributeValueMap                  `json:",omitempty"`
+	FilterExpression          string                                            `json:",omitempty"`
+	Limit                     uint64                                            `json:",omitempty"`
+	ProjectionExpression      string                                            `json:",omitempty"`
+	ReturnConsumedCapacity    string                                            `json:",omitempty"`
+	ScanFilter                condition.Conditions
+	Segment                   uint64 `json:",omitempty"`
+	Select                    string `json:",omitempty"`
+	TableName                 string
+	TotalSegments             uint64 `json:",omitempty"`
 }
 
-func NewScan() (*Scan) {
+func NewScan() *Scan {
 	s := new(Scan)
 	s.AttributesToGet = attributestoget.NewAttributesToGet()
 	s.ExclusiveStartKey = attributevalue.NewAttributeValueMap()
@@ -71,47 +71,47 @@ type Request Scan
 
 type Response struct {
 	ConsumedCapacity *capacity.ConsumedCapacity `json:",omitempty"`
-	Count uint64
-	Items []item.Item `json:",omitempty"`
+	Count            uint64
+	Items            []item.Item                      `json:",omitempty"`
 	LastEvaluatedKey attributevalue.AttributeValueMap `json:",omitempty"`
-	ScannedCount uint64 `json:",omitempty"`
+	ScannedCount     uint64                           `json:",omitempty"`
 }
 
-func NewResponse() (*Response) {
+func NewResponse() *Response {
 	r := new(Response)
 	r.ConsumedCapacity = capacity.NewConsumedCapacity()
-	r.Items = make([]item.Item,0)
+	r.Items = make([]item.Item, 0)
 	r.LastEvaluatedKey = attributevalue.NewAttributeValueMap()
 	return r
 }
 
-func (scan *Scan) EndpointReq() (string,int,error) {
+func (scan *Scan) EndpointReq() (string, int, error) {
 	// returns resp_body,code,err
-	reqJSON,json_err := json.Marshal(scan);
+	reqJSON, json_err := json.Marshal(scan)
 	if json_err != nil {
-		return "",0,json_err
+		return "", 0, json_err
 	}
-	return authreq.RetryReqJSON_V4(reqJSON,SCAN_ENDPOINT)
+	return authreq.RetryReqJSON_V4(reqJSON, SCAN_ENDPOINT)
 }
 
-func (req *Request) EndpointReq() (string,int,error) {
+func (req *Request) EndpointReq() (string, int, error) {
 	scan := Scan(*req)
 	return scan.EndpointReq()
 }
 
 // ValidOp determines if an operation is in the approved list.
 func ValidOp(op string) bool {
-	return (op == OP_EQ           ||
-		op == OP_NE           ||
-		op == OP_LE           ||
-		op == OP_LT           ||
-		op == OP_GE           ||
-		op == OP_GT           ||
-		op == OP_NULL         ||
-		op == OP_NOT_NULL     ||
-		op == OP_CONTAINS     ||
+	return (op == OP_EQ ||
+		op == OP_NE ||
+		op == OP_LE ||
+		op == OP_LT ||
+		op == OP_GE ||
+		op == OP_GT ||
+		op == OP_NULL ||
+		op == OP_NOT_NULL ||
+		op == OP_CONTAINS ||
 		op == OP_NOT_CONTAINS ||
-		op == OP_BEGINS_WITH  ||
-		op == OP_IN           ||
+		op == OP_BEGINS_WITH ||
+		op == OP_IN ||
 		op == OP_BETWEEN)
 }

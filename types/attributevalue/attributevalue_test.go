@@ -1,12 +1,12 @@
 package attributevalue
 
 import (
+	"encoding/json"
 	"fmt"
 	"testing"
-	"encoding/json"
 )
 
-// Round trip some data. Note the sets have repeated elements...make sure they 
+// Round trip some data. Note the sets have repeated elements...make sure they
 // are eliminated
 func TestAttributeValueMarshal(t *testing.T) {
 	s := []string{
@@ -21,23 +21,23 @@ func TestAttributeValueMarshal(t *testing.T) {
 		`{"L":[{"S":"a string"},{"L":[{"S":"another string"}]}]}`,
 		`{"M":{"key1":{"S":"a string"},"key2":{"L":[{"NS":["42","42","1"]},{"S":"a string"},{"L":[{"S":"another string"}]}]}}}`,
 	}
-	for _,v := range s {
+	for _, v := range s {
 		fmt.Printf("--------\n")
-		fmt.Printf("IN:%v\n",v)
+		fmt.Printf("IN:%v\n", v)
 		var a AttributeValue
-		um_err := json.Unmarshal([]byte(v),&a)
+		um_err := json.Unmarshal([]byte(v), &a)
 		if um_err != nil {
-			fmt.Printf("%v\n",um_err)
+			fmt.Printf("%v\n", um_err)
 			t.Errorf("cannot unmarshal\n")
 		}
 
-		json,jerr := json.Marshal(a)
+		json, jerr := json.Marshal(a)
 		if jerr != nil {
-			fmt.Printf("%v\n",jerr)
+			fmt.Printf("%v\n", jerr)
 			t.Errorf("cannot marshal\n")
 			return
 		}
-		fmt.Printf("OUT:%v\n",string(json))
+		fmt.Printf("OUT:%v\n", string(json))
 	}
 }
 
@@ -47,24 +47,24 @@ func TestAttributeValueInvalid(t *testing.T) {
 	a.N = "1"
 	a.S = "a"
 	if a.Valid() {
-		_,jerr := json.Marshal(a)
+		_, jerr := json.Marshal(a)
 		if jerr == nil {
 			t.Errorf("should not have been able to marshal\n")
 			return
 		} else {
-			fmt.Printf("%v\n",jerr)
+			fmt.Printf("%v\n", jerr)
 		}
 	}
 	a = NewAttributeValue()
 	a.N = "1"
 	a.B = "fsdfa"
 	if a.Valid() {
-		_,jerr := json.Marshal(a)
+		_, jerr := json.Marshal(a)
 		if jerr == nil {
 			t.Errorf("should not have been able to marshal\n")
 			return
 		} else {
-			fmt.Printf("%v\n",jerr)
+			fmt.Printf("%v\n", jerr)
 		}
 	}
 
@@ -72,12 +72,12 @@ func TestAttributeValueInvalid(t *testing.T) {
 	a.N = "1"
 	a.InsertSS("a")
 	if a.Valid() {
-		_,jerr := json.Marshal(a)
+		_, jerr := json.Marshal(a)
 		if jerr == nil {
 			t.Errorf("should not have been able to marshal\n")
 			return
 		} else {
-			fmt.Printf("%v\n",jerr)
+			fmt.Printf("%v\n", jerr)
 		}
 	}
 }
@@ -85,22 +85,22 @@ func TestAttributeValueInvalid(t *testing.T) {
 // Empty AttributeValues should emit null
 func TestAttributeValueEmpty(t *testing.T) {
 	a := NewAttributeValue()
-	json_bytes,jerr := json.Marshal(a)
+	json_bytes, jerr := json.Marshal(a)
 	if jerr != nil {
-		fmt.Printf("%v\n",jerr)
+		fmt.Printf("%v\n", jerr)
 		t.Errorf("cannot marshal\n")
 		return
 	}
-	fmt.Printf("OUT:%v\n",string(json_bytes))
+	fmt.Printf("OUT:%v\n", string(json_bytes))
 
 	var a2 AttributeValue
-	json_bytes,jerr = json.Marshal(a2)
+	json_bytes, jerr = json.Marshal(a2)
 	if jerr != nil {
-		fmt.Printf("%v\n",jerr)
+		fmt.Printf("%v\n", jerr)
 		t.Errorf("cannot marshal\n")
 		return
 	}
-	fmt.Printf("OUT:%v\n",string(json_bytes))
+	fmt.Printf("OUT:%v\n", string(json_bytes))
 }
 
 // Test the Insert funtions
@@ -109,13 +109,13 @@ func TestAttributeValueInserts(t *testing.T) {
 	a1.InsertSS("hi")
 	a1.InsertSS("hi") // duplicate, should be removed
 	a1.InsertSS("bye")
-	json,jerr := json.Marshal(a1)
+	json, jerr := json.Marshal(a1)
 	if jerr != nil {
-		fmt.Printf("%v\n",jerr)
+		fmt.Printf("%v\n", jerr)
 		t.Errorf("cannot marshal\n")
 		return
 	}
-	fmt.Printf("OUT:%v\n",string(json))
+	fmt.Printf("OUT:%v\n", string(json))
 }
 
 // Test the Insert functions
@@ -124,39 +124,39 @@ func TestAttributeValueInserts2(t *testing.T) {
 	_ = a1.InsertSS("hi")
 	_ = a1.InsertSS("hi") // duplicate, should be removed
 	_ = a1.InsertSS("bye")
-	json_bytes,jerr := json.Marshal(a1)
+	json_bytes, jerr := json.Marshal(a1)
 	if jerr != nil {
-		fmt.Printf("%v\n",jerr)
+		fmt.Printf("%v\n", jerr)
 		t.Errorf("cannot marshal\n")
 		return
 	}
-	fmt.Printf("OUT:%v\n",string(json_bytes))
+	fmt.Printf("OUT:%v\n", string(json_bytes))
 
 	a2 := NewAttributeValue()
 	_ = a2.InsertL(a1)
 	a1 = nil // should be fine, above line should make a new copy
-	json_bytes,jerr = json.Marshal(a2)
+	json_bytes, jerr = json.Marshal(a2)
 	if jerr != nil {
-		fmt.Printf("%v\n",jerr)
+		fmt.Printf("%v\n", jerr)
 		t.Errorf("cannot marshal\n")
 		return
 	}
-	fmt.Printf("OUT:%v\n",string(json_bytes))
-	
+	fmt.Printf("OUT:%v\n", string(json_bytes))
+
 	a3 := NewAttributeValue()
 	nerr := a3.InsertN("fred")
 	if nerr == nil {
 		t.Errorf("should have returned error from InsertN\n")
 		return
 	} else {
-		fmt.Printf("%v\n",nerr)
+		fmt.Printf("%v\n", nerr)
 	}
-	berr := a3.InsertB("1") 
+	berr := a3.InsertB("1")
 	if berr == nil {
 		t.Errorf("should have returned error from InsertB\n")
 		return
 	} else {
-		fmt.Printf("%v\n",berr)
+		fmt.Printf("%v\n", berr)
 	}
 }
 
@@ -173,7 +173,7 @@ func TestBadCopy(t *testing.T) {
 		t.Errorf("should have returned error from Copy\n")
 		return
 	} else {
-		fmt.Printf("%v\n",cp_err)
+		fmt.Printf("%v\n", cp_err)
 	}
 }
 
@@ -181,12 +181,12 @@ func TestBadCopy(t *testing.T) {
 func TestAttributeValueUpdate(t *testing.T) {
 	a := NewAttributeValueUpdate()
 	a.Action = "DELETE"
-	json_bytes,jerr := json.Marshal(a)
+	json_bytes, jerr := json.Marshal(a)
 	if jerr != nil {
-		fmt.Printf("%v\n",jerr)
+		fmt.Printf("%v\n", jerr)
 		t.Errorf("cannot marshal\n")
 		return
 	}
-	fmt.Printf("OUT:%v\n",string(json_bytes))
+	fmt.Printf("OUT:%v\n", string(json_bytes))
 
 }

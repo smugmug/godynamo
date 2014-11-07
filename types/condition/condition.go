@@ -6,20 +6,20 @@ import (
 	"github.com/smugmug/godynamo/types/attributevalue"
 )
 
-type Conditions map[string] *Condition
+type Conditions map[string]*Condition
 
 type Condition struct {
 	AttributeValueList []*attributevalue.AttributeValue
 	ComparisonOperator string
 }
 
-func NewConditions() (Conditions) {
-	k := make(map[string] *Condition)
+func NewConditions() Conditions {
+	k := make(map[string]*Condition)
 	return k
 }
 
-func NewCondition() (*Condition) {
+func NewCondition() *Condition {
 	k := new(Condition)
-	k.AttributeValueList = make([]*attributevalue.AttributeValue,0)
+	k.AttributeValueList = make([]*attributevalue.AttributeValue, 0)
 	return k
 }

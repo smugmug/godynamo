@@ -11,8 +11,8 @@ import (
 	"github.com/smugmug/godynamo/authreq"
 	"github.com/smugmug/godynamo/aws_const"
 	"github.com/smugmug/godynamo/types/attributedefinition"
-	"github.com/smugmug/godynamo/types/keydefinition"
 	"github.com/smugmug/godynamo/types/globalsecondaryindex"
+	"github.com/smugmug/godynamo/types/keydefinition"
 	"github.com/smugmug/godynamo/types/localsecondaryindex"
 	"github.com/smugmug/godynamo/types/provisionedthroughput"
 )
@@ -23,27 +23,27 @@ const (
 )
 
 type CreateTable struct {
-	AttributeDefinitions attributedefinition.AttributeDefinitions
+	AttributeDefinitions   attributedefinition.AttributeDefinitions
 	GlobalSecondaryIndexes []globalsecondaryindex.GlobalSecondaryIndex `json:",omitempty"`
-	KeySchema keydefinition.KeySchema
-	LocalSecondaryIndexes []localsecondaryindex.LocalSecondaryIndex `json:",omitempty"`
-	ProvisionedThroughput provisionedthroughput.ProvisionedThroughput
-	TableName string
+	KeySchema              keydefinition.KeySchema
+	LocalSecondaryIndexes  []localsecondaryindex.LocalSecondaryIndex `json:",omitempty"`
+	ProvisionedThroughput  provisionedthroughput.ProvisionedThroughput
+	TableName              string
 }
 
-func NewCreateTable() (*CreateTable) {
+func NewCreateTable() *CreateTable {
 	c := new(CreateTable)
-	c.AttributeDefinitions = make(attributedefinition.AttributeDefinitions,0)
-	c.GlobalSecondaryIndexes = make([]globalsecondaryindex.GlobalSecondaryIndex,0)
-	c.KeySchema = make(keydefinition.KeySchema,0)
-	c.LocalSecondaryIndexes = make([]localsecondaryindex.LocalSecondaryIndex,0)
+	c.AttributeDefinitions = make(attributedefinition.AttributeDefinitions, 0)
+	c.GlobalSecondaryIndexes = make([]globalsecondaryindex.GlobalSecondaryIndex, 0)
+	c.KeySchema = make(keydefinition.KeySchema, 0)
+	c.LocalSecondaryIndexes = make([]localsecondaryindex.LocalSecondaryIndex, 0)
 	return c
 }
 
 // Create is an alias for backwards compatibility
 type Create CreateTable
 
-func NewCreate() (*Create) {
+func NewCreate() *Create {
 	create_table := NewCreateTable()
 	create := Create(*create_table)
 	return &create
@@ -53,44 +53,44 @@ type Request CreateTable
 
 type Response struct {
 	TableDescription struct {
-		AttributeDefinitions attributedefinition.AttributeDefinitions `json:",omitempty"`
-		CreationDateTime float64 `json:",omitempty"`
+		AttributeDefinitions   attributedefinition.AttributeDefinitions        `json:",omitempty"`
+		CreationDateTime       float64                                         `json:",omitempty"`
 		GlobalSecondaryIndexes []globalsecondaryindex.GlobalSecondaryIndexDesc `json:",omitempty"`
-		ItemCount uint64 `json:",omitempty"`
-		KeySchema keydefinition.KeySchema `json:",omitempty"`
-		LocalSecondaryIndexes []localsecondaryindex.LocalSecondaryIndexDesc `json:",omitempty"`
-		ProvisionedThroughput provisionedthroughput.ProvisionedThroughputDesc `json:",omitempty"`
-		TableName string 
-		TableSizeBytes uint64 `json:",omitempty"`
-		TableStatus string
+		ItemCount              uint64                                          `json:",omitempty"`
+		KeySchema              keydefinition.KeySchema                         `json:",omitempty"`
+		LocalSecondaryIndexes  []localsecondaryindex.LocalSecondaryIndexDesc   `json:",omitempty"`
+		ProvisionedThroughput  provisionedthroughput.ProvisionedThroughputDesc `json:",omitempty"`
+		TableName              string
+		TableSizeBytes         uint64 `json:",omitempty"`
+		TableStatus            string
 	}
 }
 
-func NewResponse() (*Response) {
+func NewResponse() *Response {
 	r := new(Response)
-	r.TableDescription.AttributeDefinitions = make(attributedefinition.AttributeDefinitions,0)
-	r.TableDescription.GlobalSecondaryIndexes = make([]globalsecondaryindex.GlobalSecondaryIndexDesc,0)
-	r.TableDescription.KeySchema = make(keydefinition.KeySchema,0)
-	r.TableDescription.LocalSecondaryIndexes  = make([]localsecondaryindex.LocalSecondaryIndexDesc,0)
+	r.TableDescription.AttributeDefinitions = make(attributedefinition.AttributeDefinitions, 0)
+	r.TableDescription.GlobalSecondaryIndexes = make([]globalsecondaryindex.GlobalSecondaryIndexDesc, 0)
+	r.TableDescription.KeySchema = make(keydefinition.KeySchema, 0)
+	r.TableDescription.LocalSecondaryIndexes = make([]localsecondaryindex.LocalSecondaryIndexDesc, 0)
 
 	return r
 }
 
-func (create_table *CreateTable) EndpointReq() (string,int,error) {
+func (create_table *CreateTable) EndpointReq() (string, int, error) {
 	// returns resp_body,code,err
-	reqJSON,json_err := json.Marshal(create_table);
+	reqJSON, json_err := json.Marshal(create_table)
 	if json_err != nil {
-		return "",0,json_err
+		return "", 0, json_err
 	}
-	return authreq.RetryReqJSON_V4(reqJSON,CREATETABLE_ENDPOINT)
+	return authreq.RetryReqJSON_V4(reqJSON, CREATETABLE_ENDPOINT)
 }
 
-func (create *Create) EndpointReq() (string,int,error) {
+func (create *Create) EndpointReq() (string, int, error) {
 	create_table := CreateTable(*create)
 	return create_table.EndpointReq()
 }
 
-func (req *Request) EndpointReq() (string,int,error) {
+func (req *Request) EndpointReq() (string, int, error) {
 	create_table := CreateTable(*req)
 	return create_table.EndpointReq()
 }

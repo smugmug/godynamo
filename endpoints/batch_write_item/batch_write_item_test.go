@@ -1,25 +1,25 @@
 package batch_write_item
 
 import (
-	"testing"
-	"fmt"
 	"encoding/json"
+	"fmt"
 	"github.com/smugmug/godynamo/types/attributevalue"
 	"github.com/smugmug/godynamo/types/item"
+	"testing"
 )
 
 func TestRequestUnmarshal(t *testing.T) {
 	s := []string{
 		`{"RequestItems":{"Forum":[{"PutRequest":{"Item":{"Name":{"S":"AmazonDynamoDB"},"Category":{"S":"AmazonWebServices"}}}},{"PutRequest":{"Item":{"Name":{"S":"AmazonRDS"},"Category":{"S":"AmazonWebServices"}}}},{"PutRequest":{"Item":{"Name":{"S":"AmazonRedshift"},"Category":{"S":"AmazonWebServices"}}}},{"PutRequest":{"Item":{"Name":{"S":"AmazonElastiCache"},"Category":{"S":"AmazonWebServices"}}}}]},"ReturnConsumedCapacity":"TOTAL"}`,
 	}
-	for _,v := range s {
+	for _, v := range s {
 		b := NewBatchWriteItem()
-		um_err := json.Unmarshal([]byte(v),b)
+		um_err := json.Unmarshal([]byte(v), b)
 		if um_err != nil {
-			e := fmt.Sprintf("unmarshal BatchWriteItem: %v",um_err)
+			e := fmt.Sprintf("unmarshal BatchWriteItem: %v", um_err)
 			t.Errorf(e)
 		}
-		_,jerr := json.Marshal(*b)
+		_, jerr := json.Marshal(*b)
 		if jerr != nil {
 			t.Errorf("cannot marshal\n")
 		}
@@ -30,14 +30,14 @@ func TestResponseUnmarshal(t *testing.T) {
 	s := []string{
 		`{"UnprocessedItems":{"Forum":[{"PutRequest":{"Item":{"Name":{"S":"AmazonElastiCache"},"Category":{"S":"AmazonWebServices"}}}}]},"ConsumedCapacity":[{"TableName":"Forum","CapacityUnits":3}]}`,
 	}
-	for _,v := range s {
+	for _, v := range s {
 		var b Response
-		um_err := json.Unmarshal([]byte(v),&b)
+		um_err := json.Unmarshal([]byte(v), &b)
 		if um_err != nil {
-			e := fmt.Sprintf("unmarshal BatchWriteItem: %v",um_err)
+			e := fmt.Sprintf("unmarshal BatchWriteItem: %v", um_err)
 			t.Errorf(e)
 		}
-		_,jerr := json.Marshal(b)
+		_, jerr := json.Marshal(b)
 		if jerr != nil {
 			t.Errorf("cannot marshal\n")
 		}
@@ -69,7 +69,7 @@ func TestUnprocessed(t *testing.T) {
          }
      ]
  }`
-		req := `{
+	req := `{
      "RequestItems": {
          "Forum": [
              {
@@ -125,57 +125,57 @@ func TestUnprocessed(t *testing.T) {
      "ReturnConsumedCapacity": "TOTAL"
  }`
 	var r_resp Response
-	um_err := json.Unmarshal([]byte(resp),&r_resp)
+	um_err := json.Unmarshal([]byte(resp), &r_resp)
 	if um_err != nil {
-		e := fmt.Sprintf("unmarshal BatchWriteItem: %v",um_err)
+		e := fmt.Sprintf("unmarshal BatchWriteItem: %v", um_err)
 		t.Errorf(e)
 	}
-	_,jerr := json.Marshal(r_resp)
+	_, jerr := json.Marshal(r_resp)
 	if jerr != nil {
 		t.Errorf("cannot marshal\n")
 	}
 	var r_req BatchWriteItem
-	um_err = json.Unmarshal([]byte(req),&r_req)
+	um_err = json.Unmarshal([]byte(req), &r_req)
 	if um_err != nil {
-		e := fmt.Sprintf("unmarshal BatchWriteItem: %v",um_err)
+		e := fmt.Sprintf("unmarshal BatchWriteItem: %v", um_err)
 		t.Errorf(e)
 	}
-	_,jerr2 := json.Marshal(r_req)
+	_, jerr2 := json.Marshal(r_req)
 	if jerr2 != nil {
 		t.Errorf("cannot marshal\n")
 	}
-	n_req,n_req_err := unprocessedItems2BatchWriteItems(&r_req,&r_resp)
+	n_req, n_req_err := unprocessedItems2BatchWriteItems(&r_req, &r_resp)
 	if n_req_err != nil {
-		e := fmt.Sprintf("cannot make new batchwrite:%v",n_req_err)
+		e := fmt.Sprintf("cannot make new batchwrite:%v", n_req_err)
 		t.Errorf(e)
 	}
-	n_json,n_jerr := json.Marshal(*n_req)
+	n_json, n_jerr := json.Marshal(*n_req)
 	if n_jerr != nil {
 		t.Errorf("cannot marshal\n")
 	}
-	fmt.Printf("NEW:%s\n",string(n_json))
+	fmt.Printf("NEW:%s\n", string(n_json))
 }
 
 func TestSplit1(t *testing.T) {
 	b := NewBatchWriteItem()
-	b.RequestItems["foo"] = make([]RequestInstance,0)
-	for i := 0; i< 100; i++ {
+	b.RequestItems["foo"] = make([]RequestInstance, 0)
+	for i := 0; i < 100; i++ {
 		var p PutRequest
 		p.Item = make(item.Item)
-		k := fmt.Sprintf("TheKey%d",i)
-		v := fmt.Sprintf("TheVal%d",i)
-		p.Item["Key"] = &attributevalue.AttributeValue{S:k}
-		p.Item["Val"] = &attributevalue.AttributeValue{S:v}
-		b.RequestItems["foo"] = append(b.RequestItems["foo"],RequestInstance{PutRequest:&p})
+		k := fmt.Sprintf("TheKey%d", i)
+		v := fmt.Sprintf("TheVal%d", i)
+		p.Item["Key"] = &attributevalue.AttributeValue{S: k}
+		p.Item["Val"] = &attributevalue.AttributeValue{S: v}
+		b.RequestItems["foo"] = append(b.RequestItems["foo"], RequestInstance{PutRequest: &p})
 	}
-	bs,_ := Split(b)
+	bs, _ := Split(b)
 	if len(bs) != 4 {
-		e := fmt.Sprintf("len should be 4, it is %d\n",len(bs))
+		e := fmt.Sprintf("len should be 4, it is %d\n", len(bs))
 		t.Errorf(e)
 	}
 	i := 0
-	for _,bsi := range bs {
-		for _,ris := range bsi.RequestItems {
+	for _, bsi := range bs {
+		for _, ris := range bsi.RequestItems {
 			if len(ris) != 25 {
 				t.Errorf("requests len should be 25, it is not")
 
@@ -187,23 +187,23 @@ func TestSplit1(t *testing.T) {
 
 func TestSplit2(t *testing.T) {
 	b := NewBatchWriteItem()
-	b.RequestItems["foo"] = make([]RequestInstance,0)
-	for i := 0; i< 23; i++ {
+	b.RequestItems["foo"] = make([]RequestInstance, 0)
+	for i := 0; i < 23; i++ {
 		var p PutRequest
 		p.Item = make(item.Item)
-		k := fmt.Sprintf("TheKey%d",i)
-		v := fmt.Sprintf("TheVal%d",i)
-		p.Item["Key"] = &attributevalue.AttributeValue{S:k}
-		p.Item["Val"] = &attributevalue.AttributeValue{S:v}
-		b.RequestItems["foo"] = append(b.RequestItems["foo"],RequestInstance{PutRequest:&p})
+		k := fmt.Sprintf("TheKey%d", i)
+		v := fmt.Sprintf("TheVal%d", i)
+		p.Item["Key"] = &attributevalue.AttributeValue{S: k}
+		p.Item["Val"] = &attributevalue.AttributeValue{S: v}
+		b.RequestItems["foo"] = append(b.RequestItems["foo"], RequestInstance{PutRequest: &p})
 	}
-	bs,_ := Split(b)
+	bs, _ := Split(b)
 	if len(bs) != 1 {
 		t.Errorf("list should have been split in 4, it is not")
 	}
 	i := 0
-	for _,bsi := range bs {
-		for _,ris := range bsi.RequestItems {
+	for _, bsi := range bs {
+		for _, ris := range bsi.RequestItems {
 			if len(ris) != 23 {
 				t.Errorf("requests len should be 25, it is not")
 			}
