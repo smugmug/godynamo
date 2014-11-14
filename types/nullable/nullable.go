@@ -30,4 +30,3 @@ func (n NullableUInt64) MarshalJSON() ([]byte, error) {
 	}
 	return json.Marshal(in)
 }
-

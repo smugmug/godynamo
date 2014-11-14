@@ -8,12 +8,12 @@ import (
 )
 
 type AttributesResponse struct {
-	Attributes attributevalue.AttributeValueMap `json:",omitempty"`
-	ConsumedCapacity *capacity.ConsumedCapacity `json:",omitempty"`
+	Attributes            attributevalue.AttributeValueMap             `json:",omitempty"`
+	ConsumedCapacity      *capacity.ConsumedCapacity                   `json:",omitempty"`
 	ItemCollectionMetrics *itemcollectionmetrics.ItemCollectionMetrics `json:",omitempty"`
 }
 
-func NewAttributesResponse() (*AttributesResponse) {
+func NewAttributesResponse() *AttributesResponse {
 	a := new(AttributesResponse)
 	a.Attributes = attributevalue.NewAttributeValueMap()
 	a.ConsumedCapacity = capacity.NewConsumedCapacity()

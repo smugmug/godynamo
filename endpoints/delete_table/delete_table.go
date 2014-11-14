@@ -27,7 +27,7 @@ type Delete DeleteTable
 
 type Request DeleteTable
 
-func NewDeleteTable() (*DeleteTable) {
+func NewDeleteTable() *DeleteTable {
 	d := new(DeleteTable)
 	return d
 }
@@ -35,27 +35,27 @@ func NewDeleteTable() (*DeleteTable) {
 // DeleteTable and CreateTable use the same Response format
 type Response create_table.Response
 
-func NewResponse() (*Response) {
+func NewResponse() *Response {
 	cr := create_table.NewResponse()
 	r := Response(*cr)
 	return &r
 }
 
-func (delete_table *DeleteTable) EndpointReq() (string,int,error) {
+func (delete_table *DeleteTable) EndpointReq() (string, int, error) {
 	// returns resp_body,code,err
-	reqJSON,json_err := json.Marshal(delete_table);
+	reqJSON, json_err := json.Marshal(delete_table)
 	if json_err != nil {
-		return "",0,json_err
+		return "", 0, json_err
 	}
-	return authreq.RetryReqJSON_V4(reqJSON,DELETETABLE_ENDPOINT)
+	return authreq.RetryReqJSON_V4(reqJSON, DELETETABLE_ENDPOINT)
 }
 
-func (delete *Delete) EndpointReq() (string,int,error) {
+func (delete *Delete) EndpointReq() (string, int, error) {
 	delete_table := DeleteTable(*delete)
 	return delete_table.EndpointReq()
 }
 
-func (req *Request) EndpointReq() (string,int,error) {
+func (req *Request) EndpointReq() (string, int, error) {
 	delete_table := DeleteTable(*req)
 	return delete_table.EndpointReq()
 }

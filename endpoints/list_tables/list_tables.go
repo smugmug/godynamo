@@ -23,7 +23,7 @@ const (
 
 type ListTables struct {
 	ExclusiveStartTableName string `json:",omitempty"`
-	Limit uint64 `json:",omitempty"`
+	Limit                   uint64 `json:",omitempty"`
 }
 
 // List is an alias for backwards compatibility
@@ -32,31 +32,31 @@ type List ListTables
 type Request ListTables
 
 type Response struct {
-	TableNames []string
+	TableNames             []string
 	LastEvaluatedTableName string `json:",omitempty"`
 }
 
-func NewResponse() (*Response) {
+func NewResponse() *Response {
 	r := new(Response)
-	r.TableNames = make([]string,0)
+	r.TableNames = make([]string, 0)
 	return r
 }
 
-func (list_tables *ListTables) EndpointReq() (string,int,error) {
+func (list_tables *ListTables) EndpointReq() (string, int, error) {
 	// returns resp_body,code,err
-	reqJSON,json_err := json.Marshal(list_tables);
+	reqJSON, json_err := json.Marshal(list_tables)
 	if json_err != nil {
-		return "",0,json_err
+		return "", 0, json_err
 	}
-	return authreq.RetryReqJSON_V4(reqJSON,LISTTABLE_ENDPOINT)
+	return authreq.RetryReqJSON_V4(reqJSON, LISTTABLE_ENDPOINT)
 }
 
-func (list *List) EndpointReq() (string,int,error) {
+func (list *List) EndpointReq() (string, int, error) {
 	list_tables := ListTables(*list)
 	return list_tables.EndpointReq()
 }
 
-func (req *Request) EndpointReq() (string,int,error) {
+func (req *Request) EndpointReq() (string, int, error) {
 	list_tables := ListTables(*req)
 	return list_tables.EndpointReq()
 }

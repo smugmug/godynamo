@@ -3,26 +3,26 @@
 package localsecondaryindex
 
 import (
-	"fmt"
-	"errors"
 	"encoding/json"
-	"github.com/smugmug/godynamo/types/keydefinition"
+	"errors"
+	"fmt"
 	"github.com/smugmug/godynamo/types/aws_strings"
+	"github.com/smugmug/godynamo/types/keydefinition"
 )
 
 type LocalSecondaryIndex struct {
-	IndexName string `json:",omitempty"`
-	KeySchema keydefinition.KeySchema `json:",omitempty"`
+	IndexName  string                  `json:",omitempty"`
+	KeySchema  keydefinition.KeySchema `json:",omitempty"`
 	Projection struct {
 		NonKeyAttributes []string `json:",omitempty"`
-		ProjectionType string `json:",omitempty"`
+		ProjectionType   string   `json:",omitempty"`
 	}
 }
 
-func NewLocalSecondaryIndex() (*LocalSecondaryIndex) {
+func NewLocalSecondaryIndex() *LocalSecondaryIndex {
 	l := new(LocalSecondaryIndex)
-	l.KeySchema = make(keydefinition.KeySchema,0)
-	l.Projection.NonKeyAttributes = make([]string,0)
+	l.KeySchema = make(keydefinition.KeySchema, 0)
+	l.Projection.NonKeyAttributes = make([]string, 0)
 	return l
 }
 
@@ -34,8 +34,8 @@ func (l LocalSecondaryIndex) MarshalJSON() ([]byte, error) {
 	if !(aws_strings.ALL == l.Projection.ProjectionType ||
 		aws_strings.KEYS_ONLY == l.Projection.ProjectionType ||
 		aws_strings.INCLUDE == l.Projection.ProjectionType) {
-		e := fmt.Sprintf("endpoint.LocalSecondaryIndex.MarshalJSON: " +
-			"ProjectionType %s is not valid",l.Projection.ProjectionType)
+		e := fmt.Sprintf("endpoint.LocalSecondaryIndex.MarshalJSON: "+
+			"ProjectionType %s is not valid", l.Projection.ProjectionType)
 		return nil, errors.New(e)
 	}
 	if len(l.Projection.NonKeyAttributes) > 20 {
@@ -58,19 +58,19 @@ func (l LocalSecondaryIndex) MarshalJSON() ([]byte, error) {
 }
 
 type LocalSecondaryIndexDesc struct {
-	IndexName string
+	IndexName      string
 	IndexSizeBytes uint64
-	ItemCount uint64
-	KeySchema keydefinition.KeySchema
-	Projection struct {
+	ItemCount      uint64
+	KeySchema      keydefinition.KeySchema
+	Projection     struct {
 		NonKeyAttributes []string
-		ProjectionType string
+		ProjectionType   string
 	}
 }
 
-func NewLocalSecondaryIndexDesc() (*LocalSecondaryIndexDesc) {
+func NewLocalSecondaryIndexDesc() *LocalSecondaryIndexDesc {
 	d := new(LocalSecondaryIndexDesc)
-	d.KeySchema = make(keydefinition.KeySchema,0)
-	d.Projection.NonKeyAttributes = make([]string,0)
+	d.KeySchema = make(keydefinition.KeySchema, 0)
+	d.Projection.NonKeyAttributes = make([]string, 0)
 	return d
 }

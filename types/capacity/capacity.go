@@ -13,17 +13,17 @@ type ConsumedCapacityUnit_struct struct {
 }
 
 type ConsumedCapacity struct {
-	CapacityUnits ConsumedCapacityUnit `json:",omitempty"`
-	GlobalSecondaryIndexes map[string] ConsumedCapacityUnit_struct `json:",omitempty"`
-	LocalSecondaryIndexes map[string] ConsumedCapacityUnit_struct `json:",omitempty"`
-	Table *ConsumedCapacityUnit_struct `json:",omitempty"`
-	TableName string `json:",omitempty"`
+	CapacityUnits          ConsumedCapacityUnit                   `json:",omitempty"`
+	GlobalSecondaryIndexes map[string]ConsumedCapacityUnit_struct `json:",omitempty"`
+	LocalSecondaryIndexes  map[string]ConsumedCapacityUnit_struct `json:",omitempty"`
+	Table                  *ConsumedCapacityUnit_struct           `json:",omitempty"`
+	TableName              string                                 `json:",omitempty"`
 }
 
-func NewConsumedCapacity() (*ConsumedCapacity) {
+func NewConsumedCapacity() *ConsumedCapacity {
 	c := new(ConsumedCapacity)
-	c.GlobalSecondaryIndexes = make(map[string] ConsumedCapacityUnit_struct)
-	c.LocalSecondaryIndexes = make(map[string] ConsumedCapacityUnit_struct)
+	c.GlobalSecondaryIndexes = make(map[string]ConsumedCapacityUnit_struct)
+	c.LocalSecondaryIndexes = make(map[string]ConsumedCapacityUnit_struct)
 	c.Table = new(ConsumedCapacityUnit_struct)
 	return c
 }
@@ -33,14 +33,14 @@ type ReturnConsumedCapacity string
 type consumedcapacity ConsumedCapacity
 
 // Empty determines if this has struct has been assigned
-func (c *ConsumedCapacity) Empty() (bool) {
+func (c *ConsumedCapacity) Empty() bool {
 	if c == nil {
 		return true
 	}
-	if ((c.Table == nil) || (c.Table.CapacityUnits == 0))  &&
+	if ((c.Table == nil) || (c.Table.CapacityUnits == 0)) &&
 		len(c.LocalSecondaryIndexes) == 0 &&
 		len(c.GlobalSecondaryIndexes) == 0 &&
-		c.TableName == ""  &&
+		c.TableName == "" &&
 		c.CapacityUnits == 0 {
 		return true
 	} else {
