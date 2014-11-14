@@ -14,15 +14,15 @@ func TestExpectedMarshal(t *testing.T) {
 		var a ItemCollectionMetrics
 		um_err := json.Unmarshal([]byte(v),&a)
 		if um_err != nil {
-			fmt.Printf("%v\n",um_err)
+			_ = fmt.Sprintf("%v\n",um_err)
 			t.Errorf("cannot unmarshal\n")
 		}
 		
 		json,jerr := json.Marshal(a)
 		if jerr != nil {
-			fmt.Printf("%v\n",jerr)
+			_ = fmt.Sprintf("%v\n",jerr)
 			t.Errorf("cannot marshal\n")
 		}
-		fmt.Printf("IN:%v, OUT:%v\n",v,string(json))
+		_ = fmt.Sprintf("IN:%v, OUT:%v\n",v,string(json))
 	}
 }

@@ -19,7 +19,7 @@ func TestRequestMarshal(t *testing.T) {
 		if jerr != nil {
 			t.Errorf("cannot marshal\n")
 		}
-		fmt.Printf("IN:%v, OUT:%v\n",v,string(json))
+		_ = fmt.Sprintf("IN:%v, OUT:%v\n",v,string(json))
 	}
 }
 
@@ -37,6 +37,6 @@ func TestResponseMarshal(t *testing.T) {
 		if jerr != nil {
 			t.Errorf("cannot marshal\n")
 		}
-		fmt.Printf("IN:%v, OUT:%v\n",v,string(json))
+		_ = fmt.Sprintf("IN:%v, OUT:%v\n",v,string(json))
 	}
 }

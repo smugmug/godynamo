@@ -23,8 +23,9 @@ import (
 )
 
 const (
-	ENDPOINT_NAME     = "BatchGetItem"
-	BATCHGET_ENDPOINT = aws_const.ENDPOINT_PREFIX + ENDPOINT_NAME
+	ENDPOINT_NAME      = "BatchGetItem"
+	JSON_ENDPOINT_NAME = ENDPOINT_NAME + "JSON"
+	BATCHGET_ENDPOINT  = aws_const.ENDPOINT_PREFIX + ENDPOINT_NAME
 	// actual limit is 1024kb
 	QUERY_LIM_BYTES = 1048576
 	QUERY_LIM       = 100
@@ -65,9 +66,9 @@ func NewBatchGetItem() (*BatchGetItem) {
 type Request BatchGetItem
 
 type Response struct {
-	ConsumedCapacity []capacity.ConsumedCapacity
+	ConsumedCapacity []capacity.ConsumedCapacity `json:",omitempty"`
 	Responses map[string] []item.Item
-	UnprocessedKeys Table2Requests
+	UnprocessedKeys Table2Requests 
 }
 
 func NewResponse() (*Response) {
@@ -76,6 +77,45 @@ func NewResponse() (*Response) {
 	r.Responses             = make(map[string] []item.Item)
 	r.UnprocessedKeys       = make(Table2Requests)
 	return r
+}
+
+type ResponseItemsJSON struct {
+	ConsumedCapacity []capacity.ConsumedCapacity `json:",omitempty"`
+	Responses map[string] []interface{}
+	UnprocessedKeys Table2Requests	
+}
+
+func NewResponseItemsJSON() (*ResponseItemsJSON) {
+	r := new(ResponseItemsJSON)
+	r.ConsumedCapacity      = make([]capacity.ConsumedCapacity,0)
+	r.Responses             = make(map[string] []interface{})
+	r.UnprocessedKeys       = make(Table2Requests)
+	return r
+}
+
+// ToResponseItemsJSON will try to convert the Response to a ResponsesItemsJSON,
+// where the interface value for Item represents a structure that can be
+// marshaled into basic JSON.
+func (resp *Response) ToResponseItemsJSON() (*ResponseItemsJSON,error) {
+	if resp == nil {
+		return nil,errors.New("receiver is nil")
+	}
+	resp_json := NewResponseItemsJSON()
+	for tn,rs := range resp.Responses {
+		l := len(rs)
+		resp_json.Responses[tn] = make([]interface{},l)
+		for i,resp_item := range rs {
+			a := attributevalue.AttributeValueMap(resp_item)
+			c,cerr := a.ToInterface()
+			if cerr != nil {
+				return nil,cerr
+			}
+			resp_json.Responses[tn][i] = c
+		}
+	}
+	resp_json.ConsumedCapacity = resp.ConsumedCapacity
+	resp_json.UnprocessedKeys = resp.UnprocessedKeys
+	return resp_json,nil
 }
 
 // Split supports the ability to have BatchGetItem structs whose size

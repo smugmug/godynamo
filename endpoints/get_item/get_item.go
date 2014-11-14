@@ -7,18 +7,21 @@
 package get_item
 
 import (
+	"errors"
 	"encoding/json"
 	"github.com/smugmug/godynamo/authreq"
 	"github.com/smugmug/godynamo/aws_const"
 	"github.com/smugmug/godynamo/types/item"
 	"github.com/smugmug/godynamo/types/attributestoget"
+	"github.com/smugmug/godynamo/types/attributevalue"
 	"github.com/smugmug/godynamo/types/capacity"
 	"github.com/smugmug/godynamo/types/expressionattributenames"
 )
 
 const (
-	ENDPOINT_NAME    = "GetItem"
-	GETITEM_ENDPOINT = aws_const.ENDPOINT_PREFIX + ENDPOINT_NAME
+	ENDPOINT_NAME           = "GetItem"
+	JSON_ENDPOINT_NAME      = ENDPOINT_NAME + "JSON"
+	GETITEM_ENDPOINT        = aws_const.ENDPOINT_PREFIX + ENDPOINT_NAME
 )
 
 type GetItem struct {
@@ -55,11 +58,76 @@ type Response struct {
 	ConsumedCapacity *capacity.ConsumedCapacity `json:",omitempty"`
 }
 
+type response Response
+
+type response_no_capacity struct {
+	Item item.Item
+}
+
 func NewResponse() (*Response) {
 	r := new(Response)
 	r.Item = item.NewItem()
 	r.ConsumedCapacity = capacity.NewConsumedCapacity()
 	return r
+}
+
+// Some work required to omit empty ConsumedCapacity fields
+func (r Response) MarshalJSON() ([]byte, error) {
+	if r.ConsumedCapacity.Empty() {
+		var ri response_no_capacity
+		ri.Item = r.Item
+		return json.Marshal(ri)
+	}
+	ri := response(r)
+	return json.Marshal(ri)
+}
+
+// ResponseItemJSON can be formed from a Response when the caller wishes
+// to receive the Item as basic JSON.
+type ResponseItemJSON struct {
+	Item interface{}
+	ConsumedCapacity *capacity.ConsumedCapacity `json:",omitempty"`
+}
+
+type responseItemJSON ResponseItemJSON
+
+type responseItemJSON_no_capacity struct {
+	Item interface{}
+}
+
+func NewResponseItemJSON() (*ResponseItemJSON) {
+	r := new(ResponseItemJSON)
+	r.ConsumedCapacity = capacity.NewConsumedCapacity()
+	return r
+}
+
+// Some work required to omit empty ConsumedCapacity fields
+func (r ResponseItemJSON) MarshalJSON() ([]byte, error) {
+	if r.ConsumedCapacity.Empty() {
+		var ri responseItemJSON_no_capacity
+		ri.Item = r.Item
+		return json.Marshal(ri)
+	}
+	ri := responseItemJSON(r)
+	return json.Marshal(ri)
+}
+
+// ToResponseItemJSON will try to convert the Response to a ResponseItemJSON,
+// where the interface value for Item represents a structure that can be
+// marshaled into basic JSON. 
+func (resp *Response) ToResponseItemJSON() (*ResponseItemJSON,error) {
+	if resp == nil {
+		return nil,errors.New("receiver is nil")
+	}
+	a := attributevalue.AttributeValueMap(resp.Item)
+	c,cerr := a.ToInterface()
+	if cerr != nil {
+		return nil,cerr
+	}
+	resp_json := NewResponseItemJSON()
+	resp_json.ConsumedCapacity = resp.ConsumedCapacity
+	resp_json.Item = c
+	return resp_json,nil
 }
 
 func (get_item *GetItem) EndpointReq() (string,int,error) {
@@ -80,3 +148,4 @@ func (req *Request) EndpointReq() (string,int,error) {
 	get_item := GetItem(*req)
 	return get_item.EndpointReq()
 }
+

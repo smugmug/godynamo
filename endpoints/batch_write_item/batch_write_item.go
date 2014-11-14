@@ -23,6 +23,7 @@ import (
 
 const (
 	ENDPOINT_NAME       = "BatchWriteItem"
+	JSON_ENDPOINT_NAME  = ENDPOINT_NAME + "JSON"
 	BATCHWRITE_ENDPOINT = aws_const.ENDPOINT_PREFIX + ENDPOINT_NAME
 	// actual limit is 1024kb
 	QUERY_LIM_BYTES = 1048576
@@ -38,6 +39,10 @@ type PutRequest struct {
 	Item item.Item
 }
 
+type PutRequestItemJSON struct {
+	Item interface{}
+}
+
 // BatchWriteItem requests can be puts or deletes.
 // The non-nil member of this struct will be the request type specified.
 // Do not specify (non-nil) both in one struct instance.
@@ -46,18 +51,17 @@ type RequestInstance struct {
 	DeleteRequest *DeleteRequest
 }
 
-type request_putrequest struct {
-	PutRequest PutRequest
+// Similar, but supporting the use of basic json for put requests. Note that
+// use of basic json is only supported for Items, whereas delete requests
+// use keys.
+type RequestInstanceItemJSON struct {
+	PutRequest *PutRequestItemJSON
+	DeleteRequest *DeleteRequest
 }
 
-type request_deleterequest struct {
-	DeleteRequest DeleteRequest
-}
-
-// REQUEST STRUCT TYPES
-
-// Table2Requests maps Table names to list of RequestInstances
 type Table2Requests map[string] []RequestInstance
+
+type Table2RequestsItemsJSON map[string] []RequestInstanceItemJSON
 
 type BatchWriteItem struct {
 	RequestItems Table2Requests
@@ -72,6 +76,48 @@ func NewBatchWriteItem() (*BatchWriteItem) {
 }
 
 type Request BatchWriteItem
+
+type BatchWriteItemJSON struct {
+	RequestItems Table2RequestsItemsJSON
+	ReturnConsumedCapacity string `json:",omitempty"`
+	ReturnItemCollectionMetrics string `json:",omitempty"`
+}
+
+func NewBatchWriteItemJSON() (*BatchWriteItemJSON) {
+	b := new(BatchWriteItemJSON)
+	b.RequestItems = make(Table2RequestsItemsJSON)
+	return b
+}
+
+// ToBatchWriteItem will attempt to convert a BatchWriteItemJSON to BatchWriteItem
+func (bwij *BatchWriteItemJSON) ToBatchWriteItem() (*BatchWriteItem,error) {
+	if bwij == nil {
+		return nil,errors.New("receiver is nil")
+	}
+	b := NewBatchWriteItem()
+	for tn,ris := range bwij.RequestItems {
+		l := len(ris)
+		b.RequestItems[tn] = make([]RequestInstance,l)
+		for i,ri := range ris {
+			if ri.DeleteRequest != nil {
+				b.RequestItems[tn][i].DeleteRequest = ri.DeleteRequest
+				b.RequestItems[tn][i].PutRequest = nil
+			} else if ri.PutRequest != nil {
+				a,cerr := attributevalue.InterfaceToAttributeValueMap(ri.PutRequest.Item)
+				if cerr != nil {
+					return nil,cerr
+				}
+				b.RequestItems[tn][i].PutRequest = &PutRequest{Item:item.Item(a)}
+				b.RequestItems[tn][i].DeleteRequest = nil
+			} else {
+				return nil,errors.New("no Put or Delete request found")
+			}
+		}
+	}
+	b.ReturnConsumedCapacity = bwij.ReturnConsumedCapacity
+	b.ReturnItemCollectionMetrics = bwij.ReturnItemCollectionMetrics
+	return b,nil
+}
 
 type Response struct {
 	ConsumedCapacity []capacity.ConsumedCapacity

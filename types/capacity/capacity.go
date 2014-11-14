@@ -2,10 +2,14 @@
 // http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_Capacity.html
 package capacity
 
+import (
+	"encoding/json"
+)
+
 type ConsumedCapacityUnit float32
 
 type ConsumedCapacityUnit_struct struct {
-	CapacityUnits ConsumedCapacityUnit
+	CapacityUnits ConsumedCapacityUnit `json:",omitempty"`
 }
 
 type ConsumedCapacity struct {
@@ -26,3 +30,31 @@ func NewConsumedCapacity() (*ConsumedCapacity) {
 
 type ReturnConsumedCapacity string
 
+type consumedcapacity ConsumedCapacity
+
+// Empty determines if this has struct has been assigned
+func (c *ConsumedCapacity) Empty() (bool) {
+	if c == nil {
+		return true
+	}
+	if ((c.Table == nil) || (c.Table.CapacityUnits == 0))  &&
+		len(c.LocalSecondaryIndexes) == 0 &&
+		len(c.GlobalSecondaryIndexes) == 0 &&
+		c.TableName == ""  &&
+		c.CapacityUnits == 0 {
+		return true
+	} else {
+		return false
+	}
+}
+
+func (c ConsumedCapacity) MarshalJSON() ([]byte, error) {
+	if c.Empty() {
+		return json.Marshal(nil)
+	}
+	ci := consumedcapacity(c)
+	if c.Table != nil && c.Table.CapacityUnits == 0 {
+		ci.Table = nil
+	}
+	return json.Marshal(ci)
+}

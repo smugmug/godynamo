@@ -153,7 +153,7 @@ func TestUnprocessed(t *testing.T) {
 	if n_jerr != nil {
 		t.Errorf("cannot marshal\n")
 	}
-	fmt.Printf("NEW:%s\n",string(n_json))
+	_ = fmt.Sprintf("NEW:%s\n",string(n_json))
 }
 
 func TestSplit1(t *testing.T) {

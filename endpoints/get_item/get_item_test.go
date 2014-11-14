@@ -20,7 +20,7 @@ func TestRequestMarshal(t *testing.T) {
 		if jerr != nil {
 			t.Errorf("cannot marshal\n")
 		}
-		fmt.Printf("IN:%v, OUT:%v\n",v,string(json))
+		_ = fmt.Sprintf("IN:%v, OUT:%v\n",v,string(json))
 	}
 }
 
@@ -33,10 +33,20 @@ func TestResponseMarshal(t *testing.T) {
 		if um_err != nil {
 			t.Errorf("cannot unmarshal to create:\n" + v + "\n")
 		}
-		json,jerr := json.Marshal(g)
+		json1,jerr := json.Marshal(g)
 		if jerr != nil {
 			t.Errorf("cannot marshal\n")
 		}
-		fmt.Printf("IN:%v, OUT:%v\n",v,string(json))
+		_ = fmt.Sprintf("IN:%v, OUT:%v\n",v,string(json1))
+		c,cerr := g.ToResponseItemJSON()
+		if cerr != nil {
+			e := fmt.Sprintf("cannot convert %v\n",cerr)
+			t.Errorf(e)
+		}
+		json2,jerr2 := json.Marshal(c)
+		if jerr2 != nil {
+			t.Errorf("cannot marshal\n")
+		}
+		_ = fmt.Sprintf("JSON: IN:%v, OUT:%v\n",v,string(json2))
 	}
 }

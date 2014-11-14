@@ -14,14 +14,14 @@ func TestRequestUnmarshal(t *testing.T) {
 		d := NewDeleteItem()
 		um_err := json.Unmarshal([]byte(v),d)
 		if um_err != nil {
-			fmt.Printf("%v\n",um_err)
+			_ = fmt.Sprintf("%v\n",um_err)
 			t.Errorf("cannot unmarshal to delete:\n" + v + "\n")
 		}
 		json,jerr := json.Marshal(d)
 		if jerr != nil {
 			t.Errorf("cannot marshal\n")
 		}
-		fmt.Printf("IN:%v, OUT:%v\n",v,string(json))
+		_ = fmt.Sprintf("IN:%v, OUT:%v\n",v,string(json))
 	}
 }
 
@@ -38,6 +38,6 @@ func TestResponseUnmarshal(t *testing.T) {
 		if jerr != nil {
 			t.Errorf("cannot marshal\n")
 		}
-		fmt.Printf("IN:%v, OUT:%v\n",v,string(json))
+		_ = fmt.Sprintf("IN:%v, OUT:%v\n",v,string(json))
 	}
 }

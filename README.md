@@ -9,20 +9,20 @@ as traditional AWS keys.
 
 To install GoDynamo, run the following command:
 
-        go get github.com/smugmug/godynamo
+        go get github.com/blueharvest/godynamo
 
 which installs a package that requires the rest of the packages in the library.
 
 Also installed as dependencies are
 
-        https://github.com/smugmug/goawsroles
+        https://github.com/blueharvest/goawsroles
 
 which manages support for IAM roles.
 
 GoDynamo is the foundation of *bbpd*, the http proxy daemon for DynamoDB.
 You may find that package here:
 
-        https://github.com/smugmug/bbpd
+        https://github.com/blueharvest/bbpd
 
 To understand how to use Go code in your environment, please see:
 
@@ -57,7 +57,7 @@ For convenience, here is the sample configuration file (comments nonstandard):
                     "access_key_id":"xxx",
                     "secret_access_key":"xxx",
                     // If you use syslogd (a linux or *bsd system), you may set this to "true".
-                    // (currently unused)
+                    // (currently unusued)
                     "use_sys_log":true
                 }
             },
@@ -75,7 +75,7 @@ For convenience, here is the sample configuration file (comments nonstandard):
                     // set this to false and use the settings above.
                     "use_iam":true,
                     // The role provider is described in the goawsroles package.
-                    // See: https://github.com/smugmug/goawsroles/
+                    // See: https://github.com/blueharvest/goawsroles/
                     // Currently the only support is for the "file" provider, whereby
                     // roles data is written to local files.
                     "role_provider":"file",
@@ -110,14 +110,13 @@ been initialized properly. You will optionally wish to use IAM support for authe
 Below is some boilerplate to enable both of these in your program:
 
         import (
-          "fmt"
-          "log"
-          conf_iam "github.com/smugmug/godynamo/conf_iam"
-          keepalive "github.com/smugmug/godynamo/keepalive"
-          "github.com/smugmug/godynamo/conf"
-          "github.com/smugmug/godynamo/conf_file"
+                "fmt"
+                "log"
+                conf_iam "github.com/smugmug/godynamo/conf_iam"
+                keepalive "github.com/smugmug/godynamo/keepalive"
+                "github.com/smugmug/godynamo/conf"
+                "github.com/smugmug/godynamo/conf_file"
         )
-
 
         func main() {
 
@@ -167,6 +166,70 @@ as a convenience and do not alter your provisioning model, so be careful.
 GoDynamo utilizes the standard *exponential decay* resubmission algorithm as described in
 the AWS documentation. While you will see messages regarding the throttling, GoDynamo continues to
 retry your request as per the resubmission algorithm.
+
+### JSON Documents
+
+Amazon has been augmenting their SDKs with wrappers that allow the caller to coerce
+their Items (both when writing and reading) to what I will refer to as "basic JSON".
+
+Basic JSON is stripped of the type signifiers ('S','NS', etc) that AWS specifies in their
+`AttributeValue` specification (http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_AttributeValue.html).
+
+For example, the `AttributeValue`
+
+        {"AString":{"S":"this is a string"}}
+
+is translated to this basic JSON:
+
+        {"AString":"this is a string"}
+
+Here are some other examples:
+
+`AttrbiuteValue`:
+
+        {"AStringSet":{"SS":["a","b","c"]}}
+        {"ANumber":{"N":"4"}}
+        {"AList":[{"N":"4"},{"SS":["a","b","c"]}]}
+
+are translated to these basic JSON values:
+
+        {"AStringSet":["a","b","c"]}
+        {"ANumber":4}
+        {"AList":[4,["a","b","c"]]}
+
+GoDynamo now includes support for passing in basic JSON documents in place of Items in the
+following endpoints:
+
+- GetItem
+- PutItem
+- BatchGetItem
+- BatchWriteItem
+
+In the case of `GetItem` and `BatchGetItem`, the method is to call the methods
+`ToResponseItemJSON` and `ToResponseItemsJSON` respective methods on the `Response`
+types for each package, unmarshaled from the response strings returned from AWS
+after calling `EndpointReq` to complete requests.
+
+In the case of `PutItem`, use `NewPutItemJSON()` to initialize a variable of type
+`PutItemJSON`. The `Item` field of this struct is an `interface{}`, to which you
+can assign data representing basic JSON. Once done, call the `ToPutItem()` method on the `PutItemJSON`
+variable to translate the basic JSON into `AttributeValue` types and return a `PutItem`
+type that you can now call `EndpointReq` on.
+
+In the case of `PutItem`, use `NewBatchWriteItemJSON()` to initialize a variable of type
+`BatchWriteItemJSON`. The `Item` field of this `PutRequest` subfield is an `interface {}` you 
+can assign data representing basic JSON. Once done, call the `ToBatchWriteItem()` method on the `BatchWriteItemJSON`
+variable to translate the basic JSON into `AttributeValue` types and return a `BatchWriteItem`
+type that you can now call `EndpointReq` on.
+
+Note that AWS itself does not support basic JSON - the support is always delivered by a
+coercion of basic JSON to and from `AttrbiuteValue`. This coercion is lossy! For example,
+a `B` or `BS` will be coerced to a string type (`S`, `SS`) and `NULL` types will be
+coerced to `BOOL`. Use with caution.
+
+This feature is only enabled for `Item` types, not for `Key` or other `AttributeValue`
+aliases. So for example, `BatchWriteItemJSON` requests of type `DeleteRequest` cannot use
+basic JSON, only `PutRequest`.
 
 ### Troubleshooting
 

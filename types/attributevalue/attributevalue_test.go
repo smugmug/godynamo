@@ -22,22 +22,22 @@ func TestAttributeValueMarshal(t *testing.T) {
 		`{"M":{"key1":{"S":"a string"},"key2":{"L":[{"NS":["42","42","1"]},{"S":"a string"},{"L":[{"S":"another string"}]}]}}}`,
 	}
 	for _,v := range s {
-		fmt.Printf("--------\n")
-		fmt.Printf("IN:%v\n",v)
+		_ = fmt.Sprintf("--------\n")
+		_ = fmt.Sprintf("IN:%v\n",v)
 		var a AttributeValue
 		um_err := json.Unmarshal([]byte(v),&a)
 		if um_err != nil {
-			fmt.Printf("%v\n",um_err)
+			_ = fmt.Sprintf("%v\n",um_err)
 			t.Errorf("cannot unmarshal\n")
 		}
 
 		json,jerr := json.Marshal(a)
 		if jerr != nil {
-			fmt.Printf("%v\n",jerr)
+			_ = fmt.Sprintf("%v\n",jerr)
 			t.Errorf("cannot marshal\n")
 			return
 		}
-		fmt.Printf("OUT:%v\n",string(json))
+		_ = fmt.Sprintf("OUT:%v\n",string(json))
 	}
 }
 
@@ -52,7 +52,7 @@ func TestAttributeValueInvalid(t *testing.T) {
 			t.Errorf("should not have been able to marshal\n")
 			return
 		} else {
-			fmt.Printf("%v\n",jerr)
+			_ = fmt.Sprintf("%v\n",jerr)
 		}
 	}
 	a = NewAttributeValue()
@@ -64,7 +64,7 @@ func TestAttributeValueInvalid(t *testing.T) {
 			t.Errorf("should not have been able to marshal\n")
 			return
 		} else {
-			fmt.Printf("%v\n",jerr)
+			_ = fmt.Sprintf("%v\n",jerr)
 		}
 	}
 
@@ -77,7 +77,7 @@ func TestAttributeValueInvalid(t *testing.T) {
 			t.Errorf("should not have been able to marshal\n")
 			return
 		} else {
-			fmt.Printf("%v\n",jerr)
+			_ = fmt.Sprintf("%v\n",jerr)
 		}
 	}
 }
@@ -87,20 +87,20 @@ func TestAttributeValueEmpty(t *testing.T) {
 	a := NewAttributeValue()
 	json_bytes,jerr := json.Marshal(a)
 	if jerr != nil {
-		fmt.Printf("%v\n",jerr)
+		_ = fmt.Sprintf("%v\n",jerr)
 		t.Errorf("cannot marshal\n")
 		return
 	}
-	fmt.Printf("OUT:%v\n",string(json_bytes))
+	_ = fmt.Sprintf("OUT:%v\n",string(json_bytes))
 
 	var a2 AttributeValue
 	json_bytes,jerr = json.Marshal(a2)
 	if jerr != nil {
-		fmt.Printf("%v\n",jerr)
+		_ = fmt.Sprintf("%v\n",jerr)
 		t.Errorf("cannot marshal\n")
 		return
 	}
-	fmt.Printf("OUT:%v\n",string(json_bytes))
+	_ = fmt.Sprintf("OUT:%v\n",string(json_bytes))
 }
 
 // Test the Insert funtions
@@ -111,11 +111,11 @@ func TestAttributeValueInserts(t *testing.T) {
 	a1.InsertSS("bye")
 	json,jerr := json.Marshal(a1)
 	if jerr != nil {
-		fmt.Printf("%v\n",jerr)
+		_ = fmt.Sprintf("%v\n",jerr)
 		t.Errorf("cannot marshal\n")
 		return
 	}
-	fmt.Printf("OUT:%v\n",string(json))
+	_ = fmt.Sprintf("OUT:%v\n",string(json))
 }
 
 // Test the Insert functions
@@ -126,22 +126,22 @@ func TestAttributeValueInserts2(t *testing.T) {
 	_ = a1.InsertSS("bye")
 	json_bytes,jerr := json.Marshal(a1)
 	if jerr != nil {
-		fmt.Printf("%v\n",jerr)
+		_ = fmt.Sprintf("%v\n",jerr)
 		t.Errorf("cannot marshal\n")
 		return
 	}
-	fmt.Printf("OUT:%v\n",string(json_bytes))
+	_ = fmt.Sprintf("OUT:%v\n",string(json_bytes))
 
 	a2 := NewAttributeValue()
 	_ = a2.InsertL(a1)
 	a1 = nil // should be fine, above line should make a new copy
 	json_bytes,jerr = json.Marshal(a2)
 	if jerr != nil {
-		fmt.Printf("%v\n",jerr)
+		_ = fmt.Sprintf("%v\n",jerr)
 		t.Errorf("cannot marshal\n")
 		return
 	}
-	fmt.Printf("OUT:%v\n",string(json_bytes))
+	_ = fmt.Sprintf("OUT:%v\n",string(json_bytes))
 	
 	a3 := NewAttributeValue()
 	nerr := a3.InsertN("fred")
@@ -149,14 +149,14 @@ func TestAttributeValueInserts2(t *testing.T) {
 		t.Errorf("should have returned error from InsertN\n")
 		return
 	} else {
-		fmt.Printf("%v\n",nerr)
+		_ = fmt.Sprintf("%v\n",nerr)
 	}
 	berr := a3.InsertB("1") 
 	if berr == nil {
 		t.Errorf("should have returned error from InsertB\n")
 		return
 	} else {
-		fmt.Printf("%v\n",berr)
+		_ = fmt.Sprintf("%v\n",berr)
 	}
 }
 
@@ -173,7 +173,7 @@ func TestBadCopy(t *testing.T) {
 		t.Errorf("should have returned error from Copy\n")
 		return
 	} else {
-		fmt.Printf("%v\n",cp_err)
+		_ = fmt.Sprintf("%v\n",cp_err)
 	}
 }
 
@@ -183,10 +183,71 @@ func TestAttributeValueUpdate(t *testing.T) {
 	a.Action = "DELETE"
 	json_bytes,jerr := json.Marshal(a)
 	if jerr != nil {
-		fmt.Printf("%v\n",jerr)
+		_ = fmt.Sprintf("%v\n",jerr)
 		t.Errorf("cannot marshal\n")
 		return
 	}
-	fmt.Printf("OUT:%v\n",string(json_bytes))
+	_ = fmt.Sprintf("OUT:%v\n",string(json_bytes))
 
+}
+
+func TestCoerceAttributeValueBasicJSON(t *testing.T) {
+	js := []string{`{"a":{"b":"c"},"d":[{"e":"f"},"g","h"],"i":[1.0,2.0,3.0],"j":["x","y"]}`,
+		`"a"`,`true`,
+		`[1,2,3,2,3]`}
+	for _,i := range js {
+		_ = fmt.Sprintf("--------\n")
+		j := []byte(i)
+		_ = fmt.Sprintf("IN:%v\n",string(j))
+		av,av_err := BasicJSONToAttributeValue(j)
+		if av_err != nil {
+			_ = fmt.Sprintf("%v\n",av_err)
+			t.Errorf("cannot coerce")
+			return
+		}
+		av_json,av_json_err := json.Marshal(av)
+		if av_json_err != nil {
+			_ = fmt.Sprintf("%v\n",av_json_err)
+			t.Errorf("cannot marshal")
+			return		
+		}
+		_ = fmt.Sprintf("OUT:%v\n",string(av_json))
+		b,cerr := av.ToBasicJSON()
+		if cerr != nil {
+			_ = fmt.Sprintf("%v\n",cerr)
+			t.Errorf("cannot coerce")
+			return			
+		}
+		_ = fmt.Sprintf("RT:%v\n",string(b))
+	}
+}
+
+func TestCoerceAttributeValueMapBasicJSON(t *testing.T) {
+	js := []string{`{"AS":"1234string","AN":3,"ANS":[1,2,1,2,3],"ASS":["a","a","b"],"ABOOL":true,"AL":["1234string",3,[1,2,3],["a","b"]],"AM":{"AMS":"1234string","AMN":3,"AMNS":[1,2,3],"AMSS":["a","b"],"AMBOOL":true,"AL":["1234string",3,[1,2,3],["a","b"]]}}`}
+	for _,i := range js {
+		_ = fmt.Sprintf("--------\n")
+		j := []byte(i)
+		_ = fmt.Sprintf("IN:%v\n",string(j))
+		av,av_err := BasicJSONToAttributeValueMap(j)
+		if av_err != nil {
+			_ = fmt.Sprintf("%v\n",av_err)
+			t.Errorf("cannot coerce")
+			return
+		}
+		av_json,av_json_err := json.Marshal(av)
+		if av_json_err != nil {
+			_ = fmt.Sprintf("%v\n",av_json_err)
+			t.Errorf("cannot marshal")
+			return		
+		}
+		_ = fmt.Sprintf("OUT:%v\n",string(av_json))
+		b,cerr := av.ToBasicJSON()
+		if cerr != nil {
+			_ = fmt.Sprintf("%v\n",cerr)
+			t.Errorf("cannot coerce")
+			return			
+		}
+		_ = fmt.Sprintf("RT:%v\n",string(b))
+
+	}
 }

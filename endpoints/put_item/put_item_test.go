@@ -21,7 +21,24 @@ func TestRequestMarshal(t *testing.T) {
 		if jerr != nil {
 			t.Errorf("cannot marshal\n")
 		}
-		fmt.Printf("IN:%v, OUT:%v\n",v,string(json))
+		_ = fmt.Sprintf("IN:%v, OUT:%v\n",v,string(json))
+	}
+}
+
+func TestRequestJSONMarshal(t *testing.T) {
+	s := []string{`{"TableName":"Thread","Item":{"LastPostDateTime":"201303190422","Tags":["Update","MultipleItems","HelpMe"],"ForumName":"AmazonDynamoDB","Message":"IwanttoupdatemultipleitemsinasingleAPIcall.What'sthebestwaytodothat?","Subject":"HowdoIupdatemultipleitems?","LastPostedBy":"fred@example.com"},"Expected":{"ForumName":{"Exists":false},"Subject":{"Exists":false}}}`,`{"TableName":"Thread","Item":{"LastPostDateTime":"201303190422","Tags":["Update","MultipleItems","HelpMe"],"ForumName":"AmazonDynamoDB","Message":"IwanttoupdatemultipleitemsinasingleAPIcall.What'sthebestwaytodothat?","Subject":"HowdoIupdatemultipleitems?","LastPostedBy":"fred@example.com"},"ConditionExpression":"ForumName<>:fandSubject<>:s","ExpressionAttributeValues":{":f":{"S":"AmazonDynamoDB"},":s":{"S":"HowdoIupdatemultipleitems?"}}}`,
+	}
+	for _,v := range s {
+		var p PutItemJSON
+		um_err := json.Unmarshal([]byte(v),&p)
+		if um_err != nil {
+			t.Errorf("cannot unmarshal RequestItems:\n" + v + "\n")
+		}
+		json,jerr := json.Marshal(p)
+		if jerr != nil {
+			t.Errorf("cannot marshal\n")
+		}
+		_ = fmt.Sprintf("JSON IN:%v, OUT:%v\n",v,string(json))
 	}
 }
 
@@ -38,6 +55,6 @@ func TestResponseMarshal(t *testing.T) {
 		if jerr != nil {
 			t.Errorf("cannot marshal\n")
 		}
-		fmt.Printf("IN:%v, OUT:%v\n",v,string(json))
+		_ = fmt.Sprintf("IN:%v, OUT:%v\n",v,string(json))
 	}
 }

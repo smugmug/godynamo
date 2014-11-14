@@ -28,6 +28,7 @@ func TestRequestUnmarshal(t *testing.T) {
 
 func TestResponseUnmarshal(t *testing.T) {
 	s := []string{`{"Responses":{"Forum":[{"Name":{"S":"AmazonDynamoDB"},"Threads":{"N":"5"},"Messages":{"N":"19"},"Views":{"N":"35"}},{"Name":{"S":"AmazonRDS"},"Threads":{"N":"8"},"Messages":{"N":"32"},"Views":{"N":"38"}},{"Name":{"S":"AmazonRedshift"},"Threads":{"N":"12"},"Messages":{"N":"55"},"Views":{"N":"47"}}],"Thread":[{"Tags":{"SS":["Reads","MultipleUsers"]},"Message":{"S":"Howmanyuserscanreadasingledataitematatime?Arethereanylimits?"}}]},"UnprocessedKeys":{"Forum":{"Keys":[{"Name":{"S":"AmazonDynamoDB"}},{"Name":{"S":"AmazonRDS"}},{"Name":{"S":"AmazonRedshift"}}],"AttributesToGet":["Name","Threads","Messages","Views"]}},"ConsumedCapacity":[{"TableName":"Forum","CapacityUnits":3},{"TableName":"Thread","CapacityUnits":1}]}`,
+		`{"Responses":{"Forum":[{"Name":{"S":"AmazonDynamoDB"},"Threads":{"N":"5"},"Messages":{"N":"19"},"Views":{"N":"35"}},{"Name":{"S":"AmazonRDS"},"Threads":{"N":"8"},"Messages":{"N":"32"},"Views":{"N":"38"}},{"Name":{"S":"AmazonRedshift"},"Threads":{"N":"12"},"Messages":{"N":"55"},"Views":{"N":"47"}}],"Thread":[{"Tags":{"SS":["Reads","MultipleUsers"]},"Message":{"S":"Howmanyuserscanreadasingledataitematatime?Arethereanylimits?"}}]},"UnprocessedKeys":{"Forum":{"Keys":[{"Name":{"S":"AmazonDynamoDB"}},{"Name":{"S":"AmazonRDS"}},{"Name":{"S":"AmazonRedshift"}}],"AttributesToGet":["Name","Threads","Messages","Views"],"ConsumedCapacity":[]}}}`,
 	}
 	for _,v := range s {
 		b := NewResponse()
@@ -36,10 +37,22 @@ func TestResponseUnmarshal(t *testing.T) {
 			e := fmt.Sprintf("unmarshal BatchGetItem: %v",um_err)
 			t.Errorf(e)
 		}
-		_,jerr := json.Marshal(*b)
+		j,jerr := json.Marshal(b)
 		if jerr != nil {
 			t.Errorf("cannot marshal\n")
 		}
+		_ = fmt.Sprintf("OUT:%s\n",string(j))
+		c,cerr := b.ToResponseItemsJSON()
+		if cerr != nil {
+			e := fmt.Sprintf("%v",cerr)
+			t.Errorf(e)			
+		}
+		j2,jerr2 := json.Marshal(c)
+		if jerr2 != nil {
+			t.Errorf("cannot marshal\n")
+		}
+		_ = fmt.Sprintf("JSON:%s\n",string(j2))
+
 	}
 }
 
@@ -59,7 +72,7 @@ func TestUnprocessedToBatchGet(t *testing.T) {
 		if jerr != nil {
 			t.Errorf("cannot marshal\n")
 		}
-		fmt.Printf("%s\n",string(json))
+		_ = fmt.Sprintf("%s\n",string(json))
 	}
 }
 
@@ -80,7 +93,7 @@ func TestSplit1(t *testing.T) {
 	i := 0
 	for _,bsi := range bs {
 		json,_ := json.Marshal(bsi)
-		fmt.Printf("\n\n%s\n\n",string(json))
+		_ = fmt.Sprintf("\n\n%s\n\n",string(json))
 		i++
 	}
 }

@@ -7,6 +7,7 @@
 package put_item
 
 import (
+	"errors"
 	"encoding/json"
 	"github.com/smugmug/godynamo/authreq"
 	"github.com/smugmug/godynamo/aws_const"
@@ -20,6 +21,7 @@ import (
 
 const (
 	ENDPOINT_NAME           = "PutItem"
+	JSON_ENDPOINT_NAME      = ENDPOINT_NAME + "JSON"
 	PUTITEM_ENDPOINT        = aws_const.ENDPOINT_PREFIX + ENDPOINT_NAME
 	// the permitted ReturnValues flags for this op
 	RETVAL_ALL_OLD		= aws_strings.RETVAL_ALL_OLD
@@ -39,7 +41,7 @@ type PutItem struct {
 	TableName string
 }
 
-// NewPut will return a pointer to an initialized Put struct.
+// NewPut will return a pointer to an initialized PutItem struct.
 func NewPutItem() (*PutItem) {
 	p := new(PutItem)
 	p.Expected = expected.NewExpected()
@@ -58,6 +60,53 @@ func NewPut() (*Put) {
 	put_item := NewPutItem()
 	put := Put(*put_item)
 	return &put
+}
+
+// PutItemJSON differs from PutItem in that JSON is a string, which allows you to use a basic
+// JSON document as the Item
+type PutItemJSON struct {
+	ConditionExpression string `json:",omitempty"`
+	ConditionalOperator string `json:",omitempty"`
+	Expected expected.Expected `json:",omitempty"`
+	ExpressionAttributeNames expressionattributenames.ExpressionAttributeNames `json:",omitempty"`
+	ExpressionAttributeValues attributevalue.AttributeValueMap `json:",omitempty"`
+	Item interface{}
+	ReturnConsumedCapacity string `json:",omitempty"`
+	ReturnItemCollectionMetrics string `json:",omitempty"`
+	ReturnValues string `json:",omitempty"`
+	TableName string
+}
+
+// NewPutJSON will return a pointer to an initialized PutItemJSON struct.
+func NewPutItemJSON() (*PutItemJSON) {
+	p := new(PutItemJSON)
+	p.Expected = expected.NewExpected()
+	p.ExpressionAttributeNames = expressionattributenames.NewExpressionAttributeNames()
+	p.ExpressionAttributeValues = attributevalue.NewAttributeValueMap()
+	return p
+}
+
+// ToPutItem will attempt to convert a PutItemJSON to PutItem
+func (put_item_json *PutItemJSON) ToPutItem() (*PutItem,error) {
+	if put_item_json == nil {
+		return nil,errors.New("receiver is nil")
+	}
+	a,cerr := attributevalue.InterfaceToAttributeValueMap(put_item_json.Item)
+	if cerr != nil {
+		return nil,cerr
+	}
+	p := NewPutItem()
+	p.ConditionExpression = put_item_json.ConditionExpression
+	p.ConditionalOperator = put_item_json.ConditionalOperator
+	p.Expected = put_item_json.Expected
+	p.ExpressionAttributeNames = put_item_json.ExpressionAttributeNames
+	p.ExpressionAttributeValues = put_item_json.ExpressionAttributeValues
+	p.Item = item.Item(a)
+	p.ReturnConsumedCapacity = put_item_json.ReturnConsumedCapacity
+	p.ReturnItemCollectionMetrics = put_item_json.ReturnItemCollectionMetrics
+	p.ReturnValues = put_item_json.ReturnValues
+	p.TableName = put_item_json.TableName 
+	return p,nil
 }
 
 type Response attributesresponse.AttributesResponse
