@@ -9,20 +9,20 @@ as traditional AWS keys.
 
 To install GoDynamo, run the following command:
 
-        go get github.com/blueharvest/godynamo
+        go get github.com/smugmug/godynamo
 
 which installs a package that requires the rest of the packages in the library.
 
 Also installed as dependencies are
 
-        https://github.com/blueharvest/goawsroles
+        https://github.com/smugmug/goawsroles
 
 which manages support for IAM roles.
 
 GoDynamo is the foundation of *bbpd*, the http proxy daemon for DynamoDB.
 You may find that package here:
 
-        https://github.com/blueharvest/bbpd
+        https://github.com/smugmug/bbpd
 
 To understand how to use Go code in your environment, please see:
 
@@ -75,7 +75,7 @@ For convenience, here is the sample configuration file (comments nonstandard):
                     // set this to false and use the settings above.
                     "use_iam":true,
                     // The role provider is described in the goawsroles package.
-                    // See: https://github.com/blueharvest/goawsroles/
+                    // See: https://github.com/smugmug/goawsroles/
                     // Currently the only support is for the "file" provider, whereby
                     // roles data is written to local files.
                     "role_provider":"file",
