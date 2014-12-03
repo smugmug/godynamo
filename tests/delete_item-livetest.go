@@ -38,19 +38,15 @@ func main() {
 	tablename1 := tn
 	fmt.Printf("tablename1: %s\n", tablename1)
 
-	var code int
-	var err error
-	var body string
-
 	// DELETE AN ITEM
 	del_item1 := delete_item.NewDeleteItem()
 	del_item1.TableName = tablename1
 	del_item1.Key["TheHashKey"] = &attributevalue.AttributeValue{S: "AHashKey1"}
 	del_item1.Key["TheRangeKey"] = &attributevalue.AttributeValue{N: "1"}
 
-	body, code, err = del_item1.EndpointReq()
+	body, code, err := del_item1.EndpointReq()
 	if err != nil || code != http.StatusOK {
-		fmt.Printf("fail delete %d %v %s\n", code, err, body)
+		fmt.Printf("fail delete %d %v %s\n", code, err, string(body))
 		os.Exit(1)
 	}
 	fmt.Printf("%v\n%v\n,%v\n", string(body), code, err)

@@ -40,14 +40,14 @@ func main() {
 
 	var code int
 	var err error
-	var body string
+	var body []byte
 
 	// DELETE THE TABLE
 	del_table1 := delete_table.NewDeleteTable()
 	del_table1.TableName = tablename1
 	body, code, err = del_table1.EndpointReq()
 	if err != nil || code != http.StatusOK {
-		fmt.Printf("fail delete %d %v %s\n", code, err, body)
+		fmt.Printf("fail delete %d %v %s\n", code, err, string(body))
 		os.Exit(1)
 	}
 	fmt.Printf("%v\n%v\n,%v\n", string(body), code, err)
@@ -58,7 +58,7 @@ func main() {
 	l.Limit = 100
 	body, code, err = l.EndpointReq()
 	if err != nil || code != http.StatusOK {
-		fmt.Printf("fail delete %d %v %s\n", code, err, body)
+		fmt.Printf("fail delete %d %v %s\n", code, err, string(body))
 		os.Exit(1)
 	}
 	fmt.Printf("%v\n%v\n,%v\n", string(body), code, err)

@@ -41,7 +41,7 @@ func main() {
 
 	var code int
 	var err error
-	var body string
+	var body []byte
 
 	update_table1 := update_table.NewUpdateTable()
 	update_table1.TableName = tablename1
@@ -49,7 +49,7 @@ func main() {
 	update_table1.ProvisionedThroughput.WriteCapacityUnits = 200
 	body, code, err = update_table1.EndpointReq()
 	if err != nil || code != http.StatusOK {
-		fmt.Printf("update table failed %d %v %s\n", code, err, body)
+		fmt.Printf("update table failed %d %v %s\n", code, err, string(body))
 		os.Exit(1)
 	}
 
@@ -67,7 +67,7 @@ func main() {
 	desc1.TableName = tablename1
 	body, code, err = desc1.EndpointReq()
 	if err != nil || code != http.StatusOK {
-		fmt.Printf("desc failed %d %v %s\n", code, err, body)
+		fmt.Printf("desc failed %d %v %s\n", code, err, string(body))
 		os.Exit(1)
 	}
 	fmt.Printf("desc:%v\n%v\n,%v\n", string(body), code, err)
@@ -87,7 +87,7 @@ func main() {
 	l.Limit = 100
 	body, code, err = l.EndpointReq()
 	if err != nil || code != http.StatusOK {
-		fmt.Printf("list failed %d %v %s\n", code, err, body)
+		fmt.Printf("list failed %d %v %s\n", code, err, string(body))
 		os.Exit(1)
 	}
 	fmt.Printf("%v\n%v\n,%v\n", string(body), code, err)

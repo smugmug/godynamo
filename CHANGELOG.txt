@@ -1,3 +1,10 @@
+December 3, 2014
+----------------
+
+- All endpoints now return []byte instead of string for the response body. This
+  reduces some needless type transformations.
+  
+
 October 27, 2014
 ----------------
 
@@ -19,11 +26,6 @@ October 27, 2014
 
 - Licensing has been removed from the top of each source file. The BSD license
   is now only a standalone file in the top directory of the repository.
-
-- Note: AWS is advertising convenience functions to transform arbitrary JSON to and
-  from Dynamo types in its own SDKs. GoDynamo does not provide similar functionality
-  given that these transformations are "lossy" and cannot fully encompass the implied
-  types of DynamoDB.
 
 
 March 25, 2014
