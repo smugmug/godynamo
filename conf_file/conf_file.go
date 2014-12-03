@@ -2,17 +2,17 @@
 package conf_file
 
 import (
-	"os"
-	"strconv"
-	"net"
-	"net/url"
-	"log"
-	"io/ioutil"
 	"encoding/json"
-	"path/filepath"
 	"github.com/smugmug/goawsroles/roles_files"
 	"github.com/smugmug/godynamo/aws_const"
 	"github.com/smugmug/godynamo/conf"
+	"io/ioutil"
+	"log"
+	"net"
+	"net/url"
+	"os"
+	"path/filepath"
+	"strconv"
 )
 
 // Read will look for and read in the conf file, which can then be referenced as conf.Vals.
@@ -23,32 +23,33 @@ import (
 func Read() {
 	var cf conf.SDK_conf_file
 	local_conf := os.Getenv("HOME") + string(filepath.Separator) + "." + conf.CONF_NAME
-	etc_conf   := string(filepath.Separator) + "etc" + string(filepath.Separator) + conf.CONF_NAME
-	read_conf  := false
-	conf_files := make([]string,0)
-	// assumes that if set, this is a fully-qualified file path 
+	etc_conf := string(filepath.Separator) + "etc" + string(filepath.Separator) + conf.CONF_NAME
+	read_conf := false
+	conf_files := make([]string, 0)
+	// assumes that if set, this is a fully-qualified file path
 	const env_conf = "GODYNAMO_CONF_FILE"
-	// assumes that if set, this is a fully-qualified file path 
+	// assumes that if set, this is a fully-qualified file path
 	if os.Getenv(env_conf) != "" {
-		conf_files = append(conf_files,os.Getenv(env_conf))
+		conf_files = append(conf_files, os.Getenv(env_conf))
 	}
-	conf_files = append(conf_files,local_conf)
-	conf_files = append(conf_files,etc_conf)
+	conf_files = append(conf_files, local_conf)
+	conf_files = append(conf_files, etc_conf)
 	conf.Vals.ConfLock.Lock()
 	defer conf.Vals.ConfLock.Unlock()
-	CONF_LOCATIONS:for _,conf_file := range conf_files {
-		conf_bytes,conf_err := ioutil.ReadFile(conf_file)
+CONF_LOCATIONS:
+	for _, conf_file := range conf_files {
+		conf_bytes, conf_err := ioutil.ReadFile(conf_file)
 		if conf_err != nil {
-			log.Printf("cannot find conf file at %s\n",conf_file)
+			log.Printf("cannot find conf file at %s\n", conf_file)
 			continue CONF_LOCATIONS
 		} else {
-			um_err := json.Unmarshal(conf_bytes,&cf)
+			um_err := json.Unmarshal(conf_bytes, &cf)
 			if um_err != nil {
 				panic("conf_file.Read:" + conf_file +
 					" json err: " +
 					um_err.Error())
 			} else {
-				log.Printf("read conf from: %s\n",conf_file)
+				log.Printf("read conf from: %s\n", conf_file)
 				read_conf = true
 				break
 			}
@@ -64,7 +65,7 @@ func Read() {
 	}
 
 	// make sure the dynamo endpoint is available
-	addrs,addrs_err := net.LookupIP(cf.Services.Dynamo_db.Host)
+	addrs, addrs_err := net.LookupIP(cf.Services.Dynamo_db.Host)
 	if addrs_err != nil {
 		panic("cannot look up hostname: " + cf.Services.Dynamo_db.Host)
 	}
@@ -78,7 +79,7 @@ func Read() {
 	conf.Vals.Network.DynamoDB.IP = dynamo_ip
 	conf.Vals.Network.DynamoDB.Zone = cf.Services.Dynamo_db.Zone
 	scheme := "http"
-	port   := aws_const.PORT // already a string
+	port := aws_const.PORT // already a string
 	if cf.Services.Dynamo_db.Scheme != "" {
 		scheme = cf.Services.Dynamo_db.Scheme
 	}
@@ -88,8 +89,8 @@ func Read() {
 	conf.Vals.Network.DynamoDB.Port = port
 	conf.Vals.Network.DynamoDB.Scheme = scheme
 	conf.Vals.Network.DynamoDB.URL = scheme + "://" + conf.Vals.Network.DynamoDB.Host +
-	":" + port
-	_,url_err := url.Parse(conf.Vals.Network.DynamoDB.URL)
+		":" + port
+	_, url_err := url.Parse(conf.Vals.Network.DynamoDB.URL)
 	if url_err != nil {
 		panic("confload.init: read err: conf.Vals.Network.DynamoDB.URL malformed")
 	}

@@ -168,16 +168,16 @@ func Split(b *BatchWriteItem) ([]BatchWriteItem, error) {
 	return bs, nil
 }
 
-func (batch_write_item *BatchWriteItem) EndpointReq() (string, int, error) {
+func (batch_write_item *BatchWriteItem) EndpointReq() ([]byte, int, error) {
 	// returns resp_body,code,err
 	reqJSON, json_err := json.Marshal(batch_write_item)
 	if json_err != nil {
-		return "", 0, json_err
+		return nil, 0, json_err
 	}
 	return authreq.RetryReqJSON_V4(reqJSON, BATCHWRITE_ENDPOINT)
 }
 
-func (req *Request) EndpointReq() (string, int, error) {
+func (req *Request) EndpointReq() ([]byte, int, error) {
 	batch_write_item := BatchWriteItem(*req)
 	return batch_write_item.EndpointReq()
 }
@@ -186,14 +186,11 @@ func (req *Request) EndpointReq() (string, int, error) {
 // BatchWriteItem struct instances. These are split in a list of conforming BatchWriteItem instances
 // via `Split` and the concurrently dispatched to DynamoDB, with the resulting responses stitched
 // together. May break your provisioning.
-func (b *BatchWriteItem) DoBatchWrite() (string, int, error) {
-	var err error
-	code := http.StatusOK
-	body := ""
+func (b *BatchWriteItem) DoBatchWrite() ([]byte, int, error) {
 	bs, split_err := Split(b)
 	if split_err != nil {
 		e := fmt.Sprintf("batch_write_item.DoBatchWrite: split failed: %s", split_err.Error())
-		return body, code, errors.New(e)
+		return nil, 0, errors.New(e)
 	}
 	resps := make(chan ep.Endpoint_Response, len(bs))
 	for _, bi := range bs {
@@ -206,27 +203,28 @@ func (b *BatchWriteItem) DoBatchWrite() (string, int, error) {
 	for i := 0; i < len(bs); i++ {
 		resp := <-resps
 		if resp.Err != nil {
-			err = resp.Err
+			return nil, 0, resp.Err
 		} else if resp.Code != http.StatusOK {
-			code = resp.Code
+			e := fmt.Sprintf("batch_write_item.DoBatchWrite (%d): code %d",
+				i, resp.Code)
+			return nil, resp.Code, errors.New(e)
 		} else {
 			var r Response
-			um_err := json.Unmarshal([]byte(resp.Body), &r)
+			um_err := json.Unmarshal(resp.Body, &r)
 			if um_err != nil {
-				e := fmt.Sprintf("batch_write_item.DoBatchWrite: %s", um_err.Error())
-				err = errors.New(e)
+				e := fmt.Sprintf("batch_write_item.DoBatchWrite (%d):%s on \n%s",
+					i, um_err.Error(), string(resp.Body))
+				return nil, 0, errors.New(e)
 			}
 			// merge the responses from this call and the recursive one
 			_ = combineResponseMetadata(combined_resp, &r)
 		}
 	}
-	body_bytes, marshal_err := json.Marshal(*combined_resp)
+	body, marshal_err := json.Marshal(*combined_resp)
 	if marshal_err != nil {
-		err = marshal_err
-	} else {
-		body = string(body_bytes)
+		return nil, 0, marshal_err
 	}
-	return body, code, err
+	return body, http.StatusOK, nil
 }
 
 // unprocessedKeys2BatchWriteItems will take a response from DynamoDB that indicates some Keys
@@ -299,10 +297,10 @@ func combineResponseMetadata(all, this *Response) error {
 // Callers for this method should be of len QUERY_LIM or less (see DoBatchWrites()).
 // This is different than EndpointReq in that it will extract UnprocessedKeys and
 // form new BatchWriteItem's based on those, and combine any results.
-func (b *BatchWriteItem) RetryBatchWrite(depth int) (string, int, error) {
+func (b *BatchWriteItem) RetryBatchWrite(depth int) ([]byte, int, error) {
 	if depth > RECURSE_LIM {
 		e := fmt.Sprintf("batch_write_item.RetryBatchWrite: recursion depth exceeded")
-		return "", 0, errors.New(e)
+		return nil, 0, errors.New(e)
 	}
 	body, code, err := b.EndpointReq()
 	if err != nil || code != http.StatusOK {
@@ -313,7 +311,7 @@ func (b *BatchWriteItem) RetryBatchWrite(depth int) (string, int, error) {
 	um_err := json.Unmarshal([]byte(body), &resp)
 	if um_err != nil {
 		e := fmt.Sprintf("batch_write_item.RetryBatchWrite: %s", um_err.Error())
-		return "", 0, errors.New(e)
+		return nil, 0, errors.New(e)
 	}
 	// if there are unprocessed items remaining from this call...
 	if len(resp.UnprocessedItems) > 0 {
@@ -321,19 +319,19 @@ func (b *BatchWriteItem) RetryBatchWrite(depth int) (string, int, error) {
 		n_req, n_req_err := unprocessedItems2BatchWriteItems(b, &resp)
 		if n_req_err != nil {
 			e := fmt.Sprintf("batch_write_item.RetryBatchWrite: %s", n_req_err.Error())
-			return "", 0, errors.New(e)
+			return nil, 0, errors.New(e)
 		}
 		// call this function on the new object
 		n_body, n_code, n_err := n_req.RetryBatchWrite(depth + 1)
 		if n_err != nil || n_code != http.StatusOK {
-			return n_body, n_code, n_err
+			return nil, n_code, n_err
 		}
 		// get the response as an object
 		var n_resp Response
 		um_err := json.Unmarshal([]byte(n_body), &n_resp)
 		if um_err != nil {
 			e := fmt.Sprintf("batch_write_item.RetryBatchWrite: %s", um_err.Error())
-			return "", 0, errors.New(e)
+			return nil, 0, errors.New(e)
 		}
 		// merge the responses from this call and the recursive one
 		_ = combineResponseMetadata(&resp, &n_resp)
@@ -341,9 +339,9 @@ func (b *BatchWriteItem) RetryBatchWrite(depth int) (string, int, error) {
 		resp_json, resp_json_err := json.Marshal(resp)
 		if resp_json_err != nil {
 			e := fmt.Sprintf("batch_write_item.RetryBatchWrite: %s", resp_json_err.Error())
-			return "", 0, errors.New(e)
+			return nil, 0, errors.New(e)
 		}
-		body = string(resp_json)
+		body = resp_json
 	}
 	return body, code, err
 }

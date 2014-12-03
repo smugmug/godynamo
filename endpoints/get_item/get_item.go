@@ -130,21 +130,21 @@ func (resp *Response) ToResponseItemJSON() (*ResponseItemJSON, error) {
 	return resp_json, nil
 }
 
-func (get_item *GetItem) EndpointReq() (string, int, error) {
+func (get_item *GetItem) EndpointReq() ([]byte, int, error) {
 	// returns resp_body,code,err
 	reqJSON, json_err := json.Marshal(get_item)
 	if json_err != nil {
-		return "", 0, json_err
+		return nil, 0, json_err
 	}
 	return authreq.RetryReqJSON_V4(reqJSON, GETITEM_ENDPOINT)
 }
 
-func (get *Get) EndpointReq() (string, int, error) {
+func (get *Get) EndpointReq() ([]byte, int, error) {
 	get_item := GetItem(*get)
 	return get_item.EndpointReq()
 }
 
-func (req *Request) EndpointReq() (string, int, error) {
+func (req *Request) EndpointReq() ([]byte, int, error) {
 	get_item := GetItem(*req)
 	return get_item.EndpointReq()
 }

@@ -42,21 +42,21 @@ func NewResponse() *Response {
 	return r
 }
 
-func (list_tables *ListTables) EndpointReq() (string, int, error) {
+func (list_tables *ListTables) EndpointReq() ([]byte, int, error) {
 	// returns resp_body,code,err
 	reqJSON, json_err := json.Marshal(list_tables)
 	if json_err != nil {
-		return "", 0, json_err
+		return nil, 0, json_err
 	}
 	return authreq.RetryReqJSON_V4(reqJSON, LISTTABLE_ENDPOINT)
 }
 
-func (list *List) EndpointReq() (string, int, error) {
+func (list *List) EndpointReq() ([]byte, int, error) {
 	list_tables := ListTables(*list)
 	return list_tables.EndpointReq()
 }
 
-func (req *Request) EndpointReq() (string, int, error) {
+func (req *Request) EndpointReq() ([]byte, int, error) {
 	list_tables := ListTables(*req)
 	return list_tables.EndpointReq()
 }

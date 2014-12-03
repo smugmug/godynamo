@@ -76,21 +76,21 @@ func NewResponse() *Response {
 	return r
 }
 
-func (create_table *CreateTable) EndpointReq() (string, int, error) {
+func (create_table *CreateTable) EndpointReq() ([]byte, int, error) {
 	// returns resp_body,code,err
 	reqJSON, json_err := json.Marshal(create_table)
 	if json_err != nil {
-		return "", 0, json_err
+		return nil, 0, json_err
 	}
 	return authreq.RetryReqJSON_V4(reqJSON, CREATETABLE_ENDPOINT)
 }
 
-func (create *Create) EndpointReq() (string, int, error) {
+func (create *Create) EndpointReq() ([]byte, int, error) {
 	create_table := CreateTable(*create)
 	return create_table.EndpointReq()
 }
 
-func (req *Request) EndpointReq() (string, int, error) {
+func (req *Request) EndpointReq() ([]byte, int, error) {
 	create_table := CreateTable(*req)
 	return create_table.EndpointReq()
 }

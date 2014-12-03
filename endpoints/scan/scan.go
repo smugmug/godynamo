@@ -85,16 +85,16 @@ func NewResponse() *Response {
 	return r
 }
 
-func (scan *Scan) EndpointReq() (string, int, error) {
+func (scan *Scan) EndpointReq() ([]byte, int, error) {
 	// returns resp_body,code,err
 	reqJSON, json_err := json.Marshal(scan)
 	if json_err != nil {
-		return "", 0, json_err
+		return nil, 0, json_err
 	}
 	return authreq.RetryReqJSON_V4(reqJSON, SCAN_ENDPOINT)
 }
 
-func (req *Request) EndpointReq() (string, int, error) {
+func (req *Request) EndpointReq() ([]byte, int, error) {
 	scan := Scan(*req)
 	return scan.EndpointReq()
 }

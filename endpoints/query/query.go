@@ -87,16 +87,16 @@ func NewResponse() *Response {
 	return r
 }
 
-func (query *Query) EndpointReq() (string, int, error) {
+func (query *Query) EndpointReq() ([]byte, int, error) {
 	// returns resp_body,code,err
 	reqJSON, json_err := json.Marshal(query)
 	if json_err != nil {
-		return "", 0, json_err
+		return nil, 0, json_err
 	}
 	return authreq.RetryReqJSON_V4(reqJSON, QUERY_ENDPOINT)
 }
 
-func (req *Request) EndpointReq() (string, int, error) {
+func (req *Request) EndpointReq() ([]byte, int, error) {
 	query := Query(*req)
 	return query.EndpointReq()
 }

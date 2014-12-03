@@ -80,21 +80,21 @@ func NewResponse() *Response {
 	return &r
 }
 
-func (update_item *UpdateItem) EndpointReq() (string, int, error) {
+func (update_item *UpdateItem) EndpointReq() ([]byte, int, error) {
 	// returns resp_body,code,err
 	reqJSON, json_err := json.Marshal(update_item)
 	if json_err != nil {
-		return "", 0, json_err
+		return nil, 0, json_err
 	}
 	return authreq.RetryReqJSON_V4(reqJSON, UPDATEITEM_ENDPOINT)
 }
 
-func (update *Update) EndpointReq() (string, int, error) {
+func (update *Update) EndpointReq() ([]byte, int, error) {
 	update_item := UpdateItem(*update)
 	return update_item.EndpointReq()
 }
 
-func (req *Request) EndpointReq() (string, int, error) {
+func (req *Request) EndpointReq() ([]byte, int, error) {
 	update_item := UpdateItem(*req)
 	return update_item.EndpointReq()
 }

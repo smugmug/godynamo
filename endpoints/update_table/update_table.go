@@ -54,21 +54,21 @@ func NewResponse() *Response {
 	return &r
 }
 
-func (update_table *UpdateTable) EndpointReq() (string, int, error) {
+func (update_table *UpdateTable) EndpointReq() ([]byte, int, error) {
 	// returns resp_body,code,err
 	reqJSON, json_err := json.Marshal(update_table)
 	if json_err != nil {
-		return "", 0, json_err
+		return nil, 0, json_err
 	}
 	return authreq.RetryReqJSON_V4(reqJSON, UPDATETABLE_ENDPOINT)
 }
 
-func (update *Update) EndpointReq() (string, int, error) {
+func (update *Update) EndpointReq() ([]byte, int, error) {
 	update_table := UpdateTable(*update)
 	return update_table.EndpointReq()
 }
 
-func (req *Request) EndpointReq() (string, int, error) {
+func (req *Request) EndpointReq() ([]byte, int, error) {
 	update_table := UpdateTable(*req)
 	return update_table.EndpointReq()
 }

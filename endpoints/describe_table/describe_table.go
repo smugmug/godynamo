@@ -70,21 +70,21 @@ type StatusResult struct {
 	StatusResult bool
 }
 
-func (describe_table *DescribeTable) EndpointReq() (string, int, error) {
+func (describe_table *DescribeTable) EndpointReq() ([]byte, int, error) {
 	// returns resp_body,code,err
 	reqJSON, json_err := json.Marshal(describe_table)
 	if json_err != nil {
-		return "", 0, json_err
+		return nil, 0, json_err
 	}
 	return authreq.RetryReqJSON_V4(reqJSON, DESCTABLE_ENDPOINT)
 }
 
-func (describe *Describe) EndpointReq() (string, int, error) {
+func (describe *Describe) EndpointReq() ([]byte, int, error) {
 	describe_table := DescribeTable(*describe)
 	return describe_table.EndpointReq()
 }
 
-func (req *Request) EndpointReq() (string, int, error) {
+func (req *Request) EndpointReq() ([]byte, int, error) {
 	describe_table := DescribeTable(*req)
 	return describe_table.EndpointReq()
 }
@@ -123,7 +123,7 @@ func IsTableStatus(tablename string, status string) (bool, error) {
 			return false, errors.New(e)
 		}
 	}
-	if s_resp != "" && s_code == http.StatusOK {
+	if s_resp != nil && s_code == http.StatusOK {
 		var resp_json Response
 		um_err := json.Unmarshal([]byte(s_resp), &resp_json)
 		if um_err != nil {

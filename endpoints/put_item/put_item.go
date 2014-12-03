@@ -117,21 +117,21 @@ func NewResponse() *Response {
 	return &r
 }
 
-func (put_item *PutItem) EndpointReq() (string, int, error) {
+func (put_item *PutItem) EndpointReq() ([]byte, int, error) {
 	// returns resp_body,code,err
 	reqJSON, json_err := json.Marshal(put_item)
 	if json_err != nil {
-		return "", 0, json_err
+		return nil, 0, json_err
 	}
 	return authreq.RetryReqJSON_V4(reqJSON, PUTITEM_ENDPOINT)
 }
 
-func (put *Put) EndpointReq() (string, int, error) {
+func (put *Put) EndpointReq() ([]byte, int, error) {
 	put_item := PutItem(*put)
 	return put_item.EndpointReq()
 }
 
-func (req *Request) EndpointReq() (string, int, error) {
+func (req *Request) EndpointReq() ([]byte, int, error) {
 	put_item := PutItem(*req)
 	return put_item.EndpointReq()
 }

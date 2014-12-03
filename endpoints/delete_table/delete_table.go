@@ -41,21 +41,21 @@ func NewResponse() *Response {
 	return &r
 }
 
-func (delete_table *DeleteTable) EndpointReq() (string, int, error) {
+func (delete_table *DeleteTable) EndpointReq() ([]byte, int, error) {
 	// returns resp_body,code,err
 	reqJSON, json_err := json.Marshal(delete_table)
 	if json_err != nil {
-		return "", 0, json_err
+		return nil, 0, json_err
 	}
 	return authreq.RetryReqJSON_V4(reqJSON, DELETETABLE_ENDPOINT)
 }
 
-func (delete *Delete) EndpointReq() (string, int, error) {
+func (delete *Delete) EndpointReq() ([]byte, int, error) {
 	delete_table := DeleteTable(*delete)
 	return delete_table.EndpointReq()
 }
 
-func (req *Request) EndpointReq() (string, int, error) {
+func (req *Request) EndpointReq() ([]byte, int, error) {
 	delete_table := DeleteTable(*req)
 	return delete_table.EndpointReq()
 }

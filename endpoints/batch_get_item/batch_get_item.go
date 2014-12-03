@@ -152,32 +152,30 @@ func Split(b *BatchGetItem) ([]BatchGetItem, error) {
 	return bs, nil
 }
 
-func (batch_get_item *BatchGetItem) EndpointReq() (string, int, error) {
+func (batch_get_item *BatchGetItem) EndpointReq() ([]byte, int, error) {
 	// returns resp_body,code,err
 	reqJSON, json_err := json.Marshal(batch_get_item)
 	if json_err != nil {
-		return "", 0, json_err
+		return nil, 0, json_err
 	}
 	return authreq.RetryReqJSON_V4(reqJSON, BATCHGET_ENDPOINT)
 }
 
-func (req *Request) EndpointReq() (string, int, error) {
+func (req *Request) EndpointReq() ([]byte, int, error) {
 	batch_get_item := BatchGetItem(*req)
 	return batch_get_item.EndpointReq()
 }
 
 // DoBatchGet is an endpoint request handler for BatchGetItem that supports arbitrarily-sized
-// BatchGetItem struct instances. These are split in a list of conforming BatchGetItem instances
-// via `Split` and the concurrently dispatched to DynamoDB, with the resulting responses stitched
-// together. May break your provisioning.
-func (b *BatchGetItem) DoBatchGet() (string, int, error) {
-	var err error
-	code := http.StatusOK
-	body := ""
+// BatchGetItem struct instances.
+// These are split in a list of conforming BatchGetItem instances
+// via `Split` and the concurrently dispatched to DynamoDB,
+// with the resulting responses stitched together. May break your provisioning.
+func (b *BatchGetItem) DoBatchGet() ([]byte, int, error) {
 	bs, split_err := Split(b)
 	if split_err != nil {
 		e := fmt.Sprintf("batch_get_item.DoBatchGet: split failed: %s", split_err.Error())
-		return body, code, errors.New(e)
+		return nil, 0, errors.New(e)
 	}
 	resps := make(chan ep.Endpoint_Response, len(bs))
 	for _, bi := range bs {
@@ -190,28 +188,29 @@ func (b *BatchGetItem) DoBatchGet() (string, int, error) {
 	for i := 0; i < len(bs); i++ {
 		resp := <-resps
 		if resp.Err != nil {
-			err = resp.Err
+			return nil, 0, resp.Err
 		} else if resp.Code != http.StatusOK {
-			code = resp.Code
+			e := fmt.Sprintf("batch_get_item.DoBatchGet (%d): code %d",
+				i, resp.Code)
+			return nil, resp.Code, errors.New(e)
 		} else {
 			var r Response
-			um_err := json.Unmarshal([]byte(resp.Body), &r)
+			um_err := json.Unmarshal(resp.Body, &r)
 			if um_err != nil {
-				e := fmt.Sprintf("batch_get_item.DoBatchGet: %s", um_err.Error())
-				err = errors.New(e)
+				e := fmt.Sprintf("batch_get_item.DoBatchGet (%d): %s on \n%s",
+					i, um_err.Error(), string(resp.Body))
+				return nil, 0, errors.New(e)
 			}
 			// merge the responses from this call and the recursive one
 			_ = combineResponseMetadata(combined_resp, &r)
 			_ = combineResponses(combined_resp, &r)
 		}
 	}
-	body_bytes, marshal_err := json.Marshal(*combined_resp)
+	body, marshal_err := json.Marshal(*combined_resp)
 	if marshal_err != nil {
-		err = marshal_err
-	} else {
-		body = string(body_bytes)
+		return nil, 0, marshal_err
 	}
-	return body, code, err
+	return body, http.StatusOK, nil
 }
 
 // unprocessedKeys2BatchGetItems will take a response from DynamoDB that indicates some Keys
@@ -290,10 +289,10 @@ func combineResponses(all, this *Response) error {
 // Callers for this method should be of len QUERY_LIM or less (see DoBatchGets()).
 // This is different than EndpointReq in that it will extract UnprocessedKeys and
 // form new BatchGetItem's based on those, and combine any results.
-func (b *BatchGetItem) RetryBatchGet(depth int) (string, int, error) {
+func (b *BatchGetItem) RetryBatchGet(depth int) ([]byte, int, error) {
 	if depth > RECURSE_LIM {
 		e := fmt.Sprintf("batch_get_item.RetryBatchGet: recursion depth exceeded")
-		return "", 0, errors.New(e)
+		return nil, 0, errors.New(e)
 	}
 	body, code, err := b.EndpointReq()
 	if err != nil || code != http.StatusOK {
@@ -304,7 +303,7 @@ func (b *BatchGetItem) RetryBatchGet(depth int) (string, int, error) {
 	um_err := json.Unmarshal([]byte(body), &resp)
 	if um_err != nil {
 		e := fmt.Sprintf("batch_get_item.RetryBatchGet: %s", um_err.Error())
-		return "", 0, errors.New(e)
+		return nil, 0, errors.New(e)
 	}
 	// if there are unprocessed items remaining from this call...
 	if len(resp.UnprocessedKeys) > 0 {
@@ -312,19 +311,19 @@ func (b *BatchGetItem) RetryBatchGet(depth int) (string, int, error) {
 		n_req, n_req_err := unprocessedKeys2BatchGetItems(b, &resp)
 		if n_req_err != nil {
 			e := fmt.Sprintf("batch_get_item.RetryBatchGet: %s", n_req_err.Error())
-			return "", 0, errors.New(e)
+			return nil, 0, errors.New(e)
 		}
 		// call this function on the new object
 		n_body, n_code, n_err := n_req.RetryBatchGet(depth + 1)
 		if n_err != nil || n_code != http.StatusOK {
-			return n_body, n_code, n_err
+			return nil, n_code, n_err
 		}
 		// get the response as an object
 		var n_resp Response
-		um_err := json.Unmarshal([]byte(n_body), &n_resp)
+		um_err := json.Unmarshal(n_body, &n_resp)
 		if um_err != nil {
 			e := fmt.Sprintf("batch_get_item.RetryBatchGet: %s", um_err.Error())
-			return "", 0, errors.New(e)
+			return nil, 0, errors.New(e)
 		}
 		// merge the responses from this call and the recursive one
 		_ = combineResponseMetadata(&resp, &n_resp)
@@ -333,9 +332,9 @@ func (b *BatchGetItem) RetryBatchGet(depth int) (string, int, error) {
 		resp_json, resp_json_err := json.Marshal(resp)
 		if resp_json_err != nil {
 			e := fmt.Sprintf("batch_get_item.RetryBatchGet: %s", resp_json_err.Error())
-			return "", 0, errors.New(e)
+			return nil, 0, errors.New(e)
 		}
-		body = string(resp_json)
+		body = resp_json
 	}
 	return body, code, err
 }

@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
-	list "github.com/smugmug/godynamo/endpoints/list_tables"
-	conf_iam "github.com/smugmug/godynamo/conf_iam"
 	"github.com/smugmug/godynamo/conf"
 	"github.com/smugmug/godynamo/conf_file"
-	"log"
+	conf_iam "github.com/smugmug/godynamo/conf_iam"
+	list "github.com/smugmug/godynamo/endpoints/list_tables"
 	keepalive "github.com/smugmug/godynamo/keepalive"
+	"log"
 )
 
 func main() {
@@ -27,7 +27,7 @@ func main() {
 	if conf.Vals.UseIAM {
 		iam_ready_chan := make(chan bool)
 		go conf_iam.GoIAM(iam_ready_chan)
-		_ = <- iam_ready_chan
+		_ = <-iam_ready_chan
 	}
 	conf.Vals.ConfLock.RUnlock()
 
@@ -35,6 +35,6 @@ func main() {
 	var l list.ListTables
 	l.ExclusiveStartTableName = ""
 	l.Limit = 100
-	lbody,lcode,lerr := l.EndpointReq()
-	fmt.Printf("%v\n%v\n,%v\n",lbody,lcode,lerr)
+	lbody, lcode, lerr := l.EndpointReq()
+	fmt.Printf("%v\n%v\n,%v\n", string(lbody), lcode, lerr)
 }

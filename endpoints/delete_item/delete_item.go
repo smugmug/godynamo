@@ -67,21 +67,21 @@ func NewResponse() *Response {
 	return &r
 }
 
-func (delete_item *DeleteItem) EndpointReq() (string, int, error) {
+func (delete_item *DeleteItem) EndpointReq() ([]byte, int, error) {
 	// returns resp_body,code,err
 	reqJSON, json_err := json.Marshal(delete_item)
 	if json_err != nil {
-		return "", 0, json_err
+		return nil, 0, json_err
 	}
 	return authreq.RetryReqJSON_V4(reqJSON, DELETEITEM_ENDPOINT)
 }
 
-func (delete *Delete) EndpointReq() (string, int, error) {
+func (delete *Delete) EndpointReq() ([]byte, int, error) {
 	delete_item := DeleteItem(*delete)
 	return delete_item.EndpointReq()
 }
 
-func (req *Request) EndpointReq() (string, int, error) {
+func (req *Request) EndpointReq() ([]byte, int, error) {
 	delete_item := DeleteItem(*req)
 	return delete_item.EndpointReq()
 }
