@@ -185,7 +185,7 @@ is translated to this basic JSON:
 
 Here are some other examples:
 
-`AttrbiuteValue`:
+`AttributeValue`:
 
         {"AStringSet":{"SS":["a","b","c"]}}
         {"ANumber":{"N":"4"}}
@@ -223,7 +223,7 @@ variable to translate the basic JSON into `AttributeValue` types and return a `B
 type that you can now call `EndpointReq` on.
 
 Note that AWS itself does not support basic JSON - the support is always delivered by a
-coercion of basic JSON to and from `AttrbiuteValue`. This coercion is lossy! For example,
+coercion of basic JSON to and from `AttributeValue`. This coercion is lossy! For example,
 a `B` or `BS` will be coerced to a string type (`S`, `SS`) and `NULL` types will be
 coerced to `BOOL`. Use with caution.
 
