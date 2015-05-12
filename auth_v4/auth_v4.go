@@ -76,30 +76,15 @@ func MatchCheckSum(response http.Response, respbody []byte) (bool, error) {
 	return true, nil
 }
 
-// RawReq will sign and transmit the request to the AWS DynanoDB endpoint.
-// This method is DynamoDB-specific.
-// returns []byte respBody, string aws reqID, int http code, error
-func RawReq(reqJSON []byte, amzTarget string) ([]byte, string, int, error) {
-
-	// shadow conf vars in a read lock to minimize contention
-	conf.Vals.ConfLock.RLock()
-	conf_url_str := conf.Vals.Network.DynamoDB.URL
-	conf_host := conf.Vals.Network.DynamoDB.Host
-	conf_port_str := conf.Vals.Network.DynamoDB.Port
-	conf_zone := conf.Vals.Network.DynamoDB.Zone
-	conf_useIAM := conf.Vals.UseIAM
-	conf_IAMSecret := conf.Vals.IAM.Credentials.Secret
-	conf_IAMAccessKey := conf.Vals.IAM.Credentials.AccessKey
-	conf_IAMToken := conf.Vals.IAM.Credentials.Token
-	conf_AuthSecret := conf.Vals.Auth.Secret
-	conf_AuthAccessKey := conf.Vals.Auth.AccessKey
-	conf.Vals.ConfLock.RUnlock()
+// rawReqAll takes each parameter independently, forms and signs the request, and returns the
+// result (and error codes).
+func rawReqAll(reqJSON []byte, amzTarget string, useIAM bool, url, host, port, zone, IAMSecret, IAMAccessKey, IAMToken, authSecret, authAccessKey string) ([]byte, string, int, error) {
 
 	// initialize req with body reader
 	body := strings.NewReader(string(reqJSON))
-	request, req_err := http.NewRequest(aws_const.METHOD, conf_url_str, body)
+	request, req_err := http.NewRequest(aws_const.METHOD, url, body)
 	if req_err != nil {
-		e := fmt.Sprintf("auth_v4.RawReq:failed init conn %s", req_err.Error())
+		e := fmt.Sprintf("auth_v4.rawReqAll:failed init conn %s", req_err.Error())
 		return nil, "", 0, errors.New(e)
 	}
 
@@ -121,51 +106,51 @@ func RawReq(reqJSON []byte, amzTarget string) ([]byte, string, int, error) {
 	// create the various signed formats aws uses for v4 signed reqs
 	service := strings.ToLower(aws_const.DYNAMODB)
 	canonical_request := tasks.CanonicalRequest(
-		conf_host,
-		conf_port_str,
+		host,
+		port,
 		request.Header.Get(aws_const.X_AMZ_DATE_HDR),
 		request.Header.Get(aws_const.AMZ_TARGET_HDR),
 		hexPayload)
 	str2sign := tasks.String2Sign(now, canonical_request,
-		conf_zone,
+		zone,
 		service)
 
 	// obtain the aws secret credential from the global Auth or from IAM
 	var secret string
-	if conf_useIAM == true {
-		secret = conf_IAMSecret
+	if useIAM == true {
+		secret = IAMSecret
 	} else {
-		secret = conf_AuthSecret
+		secret = authSecret
 	}
 	if secret == "" {
-		panic("auth_v4.cacheable_hmacs: no Secret defined; " + IAM_WARN_MESSAGE)
+		panic("auth_v4.rawReqAll: no Secret defined; " + IAM_WARN_MESSAGE)
 	}
 
-	signature := tasks.MakeSignature(str2sign, conf_zone, service, secret)
+	signature := tasks.MakeSignature(str2sign, zone, service, secret)
 
 	// obtain the aws accessKey credential from the global Auth or from IAM
 	// if using IAM, read the token while we have the lock
 	var accessKey, token string
-	if conf_useIAM == true {
-		accessKey = conf_IAMAccessKey
-		token = conf_IAMToken
+	if useIAM == true {
+		accessKey = IAMAccessKey
+		token = IAMToken
 	} else {
-		accessKey = conf_AuthAccessKey
+		accessKey = authAccessKey
 	}
 	if accessKey == "" {
-		panic("auth_v4.RawReq: no Access Key defined; " + IAM_WARN_MESSAGE)
+		panic("auth_v4.rawReqAll: no Access Key defined; " + IAM_WARN_MESSAGE)
 	}
 
 	v4auth := "AWS4-HMAC-SHA256 Credential=" + accessKey +
 		"/" + now.UTC().Format(aws_const.ISODATEFMT) + "/" +
-		conf_zone + "/" + service + "/aws4_request," +
+		zone + "/" + service + "/aws4_request," +
 		"SignedHeaders=content-type;host;x-amz-date;x-amz-target," +
 		"Signature=" + signature
 
 	request.Header.Add("Authorization", v4auth)
-	if conf_useIAM == true {
+	if useIAM == true {
 		if token == "" {
-			panic("auth_v4.RawReq: no Token defined;" + IAM_WARN_MESSAGE)
+			panic("auth_v4.rawReqAll: no Token defined;" + IAM_WARN_MESSAGE)
 		}
 		request.Header.Add(aws_const.X_AMZ_SECURITY_TOKEN_HDR, token)
 	}
@@ -180,7 +165,7 @@ func RawReq(reqJSON []byte, amzTarget string) ([]byte, string, int, error) {
 	respbody, read_err := ioutil.ReadAll(response.Body)
 	response.Body.Close()
 	if read_err != nil && read_err != io.EOF {
-		e := fmt.Sprintf("auth_v4.RawReq:err reading resp body: %s", read_err.Error())
+		e := fmt.Sprintf("auth_v4.rawReqAll:err reading resp body: %s", read_err.Error())
 		return nil, "", 0, errors.New(e)
 	}
 
@@ -192,8 +177,51 @@ func RawReq(reqJSON []byte, amzTarget string) ([]byte, string, int, error) {
 	return respbody, amz_requestid, response.StatusCode, nil
 }
 
-// Req is just a wrapper for RawReq if we need to massage data
-// before dispatch.
+// RawReqWithConf will sign and transmit the request to the AWS DynamoDB endpoint.
+// reqJSON is the json request
+// amzTarget is the dynamoDB endpoint
+// c is the configuration struct
+// returns []byte respBody, string aws reqID, int http code, error
+func RawReqWithConf(reqJSON []byte, amzTarget string, c *conf.AWS_Conf) ([]byte, string, int, error) {
+	if !conf.IsValid(c) {
+		return nil, "", 0, errors.New("auth_v4.RawReqWithConf: conf not valid")
+	}
+	// shadow conf vars in a read lock to minimize contention
+	var our_c conf.AWS_Conf
+	cp_err := our_c.Copy(c)
+	if cp_err != nil {
+		return nil, "", 0, cp_err
+	}
+	return rawReqAll(
+		reqJSON,
+		amzTarget,
+		our_c.UseIAM,
+		our_c.Network.DynamoDB.URL,
+		our_c.Network.DynamoDB.Host,
+		our_c.Network.DynamoDB.Port,
+		our_c.Network.DynamoDB.Zone,
+		our_c.IAM.Credentials.Secret,
+		our_c.IAM.Credentials.AccessKey,
+		our_c.IAM.Credentials.Token,
+		our_c.Auth.Secret,
+		our_c.Auth.AccessKey)
+}
+
+// RawReq will sign and transmit the request to the AWS DynamoDB endpoint.
+// This method uses the global conf.Vals to obtain credential and configuation information.
+func RawReq(reqJSON []byte, amzTarget string) ([]byte, string, int, error) {
+	return RawReqWithConf(reqJSON, amzTarget, &conf.Vals)
+}
+
+// Req  will sign and transmit the request to the AWS DynamoDB endpoint.
+// This method uses the global conf.Vals to obtain credential and configuation information.
+// At one point, RawReq and Req were different, now RawReq is just an alias.
 func Req(reqJSON []byte, amzTarget string) ([]byte, string, int, error) {
-	return RawReq(reqJSON, amzTarget)
+	return RawReqWithConf(reqJSON, amzTarget, &conf.Vals)
+}
+
+// ReqConf is just a wrapper for RawReq if we need to massage data
+// before dispatch. Uses parameterized conf.
+func ReqWithConf(reqJSON []byte, amzTarget string, c *conf.AWS_Conf) ([]byte, string, int, error) {
+	return RawReqWithConf(reqJSON, amzTarget, c)
 }

@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"github.com/smugmug/godynamo/authreq"
 	"github.com/smugmug/godynamo/aws_const"
+	"github.com/smugmug/godynamo/conf"
 	ep "github.com/smugmug/godynamo/endpoint"
 	"github.com/smugmug/godynamo/types/attributestoget"
 	"github.com/smugmug/godynamo/types/attributevalue"
@@ -98,7 +99,7 @@ func NewResponseItemsJSON() *ResponseItemsJSON {
 // marshaled into basic JSON.
 func (resp *Response) ToResponseItemsJSON() (*ResponseItemsJSON, error) {
 	if resp == nil {
-		return nil, errors.New("receiver is nil")
+		return nil, errors.New("batch_get_item.ToResponseItemsJson: receiver is nil")
 	}
 	resp_json := NewResponseItemsJSON()
 	for tn, rs := range resp.Responses {
@@ -123,10 +124,13 @@ func (resp *Response) ToResponseItemsJSON() (*ResponseItemsJSON, error) {
 // BatchGetItems into a list of BatchGetItem structs that are limited
 // to the upper bound stated by AWS.
 func Split(b *BatchGetItem) ([]BatchGetItem, error) {
+	if b == nil {
+		return nil, errors.New("batch_get_item.Split: receiver is nil")
+	}
 	bs := make([]BatchGetItem, 0)
 	bi := NewBatchGetItem()
 	i := 0
-	for tn, _ := range b.RequestItems {
+	for tn := range b.RequestItems {
 		for _, ri := range b.RequestItems[tn].Keys {
 			if i == QUERY_LIM {
 				bi.ReturnConsumedCapacity = b.ReturnConsumedCapacity
@@ -152,26 +156,18 @@ func Split(b *BatchGetItem) ([]BatchGetItem, error) {
 	return bs, nil
 }
 
-func (batch_get_item *BatchGetItem) EndpointReq() ([]byte, int, error) {
-	// returns resp_body,code,err
-	reqJSON, json_err := json.Marshal(batch_get_item)
-	if json_err != nil {
-		return nil, 0, json_err
-	}
-	return authreq.RetryReqJSON_V4(reqJSON, BATCHGET_ENDPOINT)
-}
-
-func (req *Request) EndpointReq() ([]byte, int, error) {
-	batch_get_item := BatchGetItem(*req)
-	return batch_get_item.EndpointReq()
-}
-
 // DoBatchGet is an endpoint request handler for BatchGetItem that supports arbitrarily-sized
 // BatchGetItem struct instances.
 // These are split in a list of conforming BatchGetItem instances
 // via `Split` and the concurrently dispatched to DynamoDB,
 // with the resulting responses stitched together. May break your provisioning.
-func (b *BatchGetItem) DoBatchGet() ([]byte, int, error) {
+func (b *BatchGetItem) DoBatchGetWithConf(c *conf.AWS_Conf) ([]byte, int, error) {
+	if b == nil {
+		return nil, 0, errors.New("batch_get_item.DoBatchGetWithConf: receiver is nil")
+	}
+	if !conf.IsValid(c) {
+		return nil, 0, errors.New("batch_get_item.DoBatchGetWithConf: c is not valid")
+	}
 	bs, split_err := Split(b)
 	if split_err != nil {
 		e := fmt.Sprintf("batch_get_item.DoBatchGet: split failed: %s", split_err.Error())
@@ -180,7 +176,7 @@ func (b *BatchGetItem) DoBatchGet() ([]byte, int, error) {
 	resps := make(chan ep.Endpoint_Response, len(bs))
 	for _, bi := range bs {
 		go func(bi_ BatchGetItem) {
-			body, code, err := bi_.RetryBatchGet(0)
+			body, code, err := bi_.RetryBatchGetWithConf(0, c)
 			resps <- ep.Endpoint_Response{Body: body, Code: code, Err: err}
 		}(bi)
 	}
@@ -190,14 +186,14 @@ func (b *BatchGetItem) DoBatchGet() ([]byte, int, error) {
 		if resp.Err != nil {
 			return nil, 0, resp.Err
 		} else if resp.Code != http.StatusOK {
-			e := fmt.Sprintf("batch_get_item.DoBatchGet (%d): code %d",
+			e := fmt.Sprintf("batch_get_item.DoBatchGetWithConf (%d): code %d",
 				i, resp.Code)
 			return nil, resp.Code, errors.New(e)
 		} else {
 			var r Response
 			um_err := json.Unmarshal(resp.Body, &r)
 			if um_err != nil {
-				e := fmt.Sprintf("batch_get_item.DoBatchGet (%d): %s on \n%s",
+				e := fmt.Sprintf("batch_get_item.DoBatchGetWithConf (%d): %s on \n%s",
 					i, um_err.Error(), string(resp.Body))
 				return nil, 0, errors.New(e)
 			}
@@ -213,12 +209,23 @@ func (b *BatchGetItem) DoBatchGet() ([]byte, int, error) {
 	return body, http.StatusOK, nil
 }
 
+// DoBatchGet calls DoBatchGetWithConf using the global conf.
+func (b *BatchGetItem) DoBatchGet() ([]byte, int, error) {
+	if b == nil {
+		return nil, 0, errors.New("batch_get_item.DoBatchGet: receiver is nil")
+	}
+	return b.DoBatchGetWithConf(&conf.Vals)
+}
+
 // unprocessedKeys2BatchGetItems will take a response from DynamoDB that indicates some Keys
 // require resubmitting, and turns these into a BatchGetItem struct instance.
 func unprocessedKeys2BatchGetItems(req *BatchGetItem, resp *Response) (*BatchGetItem, error) {
+	if req == nil || resp == nil {
+		return nil, errors.New("batch_get_item.unprocessedKeys2BatchGetItems: one of req or resp is nil")
+	}
 	b := NewBatchGetItem()
 	b.ReturnConsumedCapacity = req.ReturnConsumedCapacity
-	for tn, _ := range resp.UnprocessedKeys {
+	for tn := range resp.UnprocessedKeys {
 		if _, tn_in_b := b.RequestItems[tn]; !tn_in_b {
 			b.RequestItems[tn] = NewRequestInstance()
 			b.RequestItems[tn].AttributesToGet = make(
@@ -247,6 +254,9 @@ func unprocessedKeys2BatchGetItems(req *BatchGetItem, resp *Response) (*BatchGet
 
 // Add ConsumedCapacity from "this" Response to "all", the eventual stitched Response.
 func combineResponseMetadata(all, this *Response) error {
+	if all == nil || this == nil {
+		return errors.New("batch_get_item.combineResponseMetadata: all or this is nil")
+	}
 	combinedConsumedCapacity := make([]capacity.ConsumedCapacity, 0)
 	for _, this_cc := range this.ConsumedCapacity {
 		var cc capacity.ConsumedCapacity
@@ -265,7 +275,10 @@ func combineResponseMetadata(all, this *Response) error {
 
 // Add actual response data from "this" Response to "all", the eventual stitched Response.
 func combineResponses(all, this *Response) error {
-	for tn, _ := range this.Responses {
+	if all == nil || this == nil {
+		return errors.New("batch_get_item.combineResponses: all or this is nil")
+	}
+	for tn := range this.Responses {
 		if _, tn_in_all := all.Responses[tn]; !tn_in_all {
 			all.Responses[tn] = make([]item.Item, 0)
 		}
@@ -285,16 +298,19 @@ func combineResponses(all, this *Response) error {
 	return nil
 }
 
-// RetryBatchGet will attempt to fully complete a conforming BatchGetItem request.
+// RetryBatchGetWithConf will attempt to fully complete a conforming BatchGetItem request.
 // Callers for this method should be of len QUERY_LIM or less (see DoBatchGets()).
 // This is different than EndpointReq in that it will extract UnprocessedKeys and
 // form new BatchGetItem's based on those, and combine any results.
-func (b *BatchGetItem) RetryBatchGet(depth int) ([]byte, int, error) {
+func (b *BatchGetItem) RetryBatchGetWithConf(depth int, c *conf.AWS_Conf) ([]byte, int, error) {
+	if b == nil {
+		return nil, 0, errors.New("batch_get_item.RetryBatchGetWithConf: receiver is nil")
+	}
 	if depth > RECURSE_LIM {
-		e := fmt.Sprintf("batch_get_item.RetryBatchGet: recursion depth exceeded")
+		e := fmt.Sprintf("batch_get_item.RetryBatchGetWithConf: recursion depth exceeded")
 		return nil, 0, errors.New(e)
 	}
-	body, code, err := b.EndpointReq()
+	body, code, err := b.EndpointReqWithConf(c)
 	if err != nil || code != http.StatusOK {
 		return body, code, err
 	}
@@ -302,7 +318,7 @@ func (b *BatchGetItem) RetryBatchGet(depth int) ([]byte, int, error) {
 	var resp Response
 	um_err := json.Unmarshal([]byte(body), &resp)
 	if um_err != nil {
-		e := fmt.Sprintf("batch_get_item.RetryBatchGet: %s", um_err.Error())
+		e := fmt.Sprintf("batch_get_item.RetryBatchGetWithConf: %s", um_err.Error())
 		return nil, 0, errors.New(e)
 	}
 	// if there are unprocessed items remaining from this call...
@@ -314,7 +330,7 @@ func (b *BatchGetItem) RetryBatchGet(depth int) ([]byte, int, error) {
 			return nil, 0, errors.New(e)
 		}
 		// call this function on the new object
-		n_body, n_code, n_err := n_req.RetryBatchGet(depth + 1)
+		n_body, n_code, n_err := n_req.RetryBatchGetWithConf(depth+1, c)
 		if n_err != nil || n_code != http.StatusOK {
 			return nil, n_code, n_err
 		}
@@ -337,4 +353,54 @@ func (b *BatchGetItem) RetryBatchGet(depth int) ([]byte, int, error) {
 		body = resp_json
 	}
 	return body, code, err
+}
+
+// RetryBatchGet is just a wrapper for RetryBatchGetWithConf using the global conf.
+func (b *BatchGetItem) RetryBatchGet(depth int) ([]byte, int, error) {
+	if b == nil {
+		return nil, 0, errors.New("batch_get_item.RetryBatchGet: receiver is nil")
+	}
+	return b.RetryBatchGetWithConf(depth, &conf.Vals)
+}
+
+// These implementations of EndpointReq use a parameterized conf.
+
+func (batch_get_item *BatchGetItem) EndpointReqWithConf(c *conf.AWS_Conf) ([]byte, int, error) {
+	if batch_get_item == nil {
+		return nil, 0, errors.New("batch_get_item.(BatchGetItem)EndpointReqWithConf: receiver is nil")
+	}
+	if !conf.IsValid(c) {
+		return nil, 0, errors.New("batch_get_item.EndpointReqWithConf: c is not valid")
+	}
+	// returns resp_body,code,err
+	reqJSON, json_err := json.Marshal(batch_get_item)
+	if json_err != nil {
+		return nil, 0, json_err
+	}
+	return authreq.RetryReqJSON_V4WithConf(reqJSON, BATCHGET_ENDPOINT, c)
+}
+
+func (req *Request) EndpointReqWithConf(c *conf.AWS_Conf) ([]byte, int, error) {
+	if req == nil {
+		return nil, 0, errors.New("batch_get_item.(Request)EndpointReqWithConf: receiver is nil")
+	}
+	batch_get_item := BatchGetItem(*req)
+	return batch_get_item.EndpointReqWithConf(c)
+}
+
+// These implementations of EndpointReq use the global conf.
+
+func (batch_get_item *BatchGetItem) EndpointReq(c *conf.AWS_Conf) ([]byte, int, error) {
+	if batch_get_item == nil {
+		return nil, 0, errors.New("batch_get_item.(BatchGetItem)EndpointReq: receiver is nil")
+	}
+	return batch_get_item.EndpointReqWithConf(&conf.Vals)
+}
+
+func (req *Request) EndpointReq() ([]byte, int, error) {
+	if req == nil {
+		return nil, 0, errors.New("batch_get_item.(Request)EndpointReq: receiver is nil")
+	}
+	batch_get_item := BatchGetItem(*req)
+	return batch_get_item.EndpointReqWithConf(&conf.Vals)
 }

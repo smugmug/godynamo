@@ -8,8 +8,10 @@ package update_item
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/smugmug/godynamo/authreq"
 	"github.com/smugmug/godynamo/aws_const"
+	"github.com/smugmug/godynamo/conf"
 	"github.com/smugmug/godynamo/types/attributesresponse"
 	"github.com/smugmug/godynamo/types/attributevalue"
 	"github.com/smugmug/godynamo/types/aws_strings"
@@ -80,21 +82,60 @@ func NewResponse() *Response {
 	return &r
 }
 
-func (update_item *UpdateItem) EndpointReq() ([]byte, int, error) {
+// These implementations of EndpointReq use a parameterized conf.
+
+func (update_item *UpdateItem) EndpointReqWithConf(c *conf.AWS_Conf) ([]byte, int, error) {
+	if update_item == nil {
+		return nil, 0, errors.New("update_item.(UpdateItem)EndpointReqWithConf: receiver is nil")
+	}
+	if !conf.IsValid(c) {
+		return nil, 0, errors.New("update_item.EndpointReqWithConf: c is not valid")
+	}
 	// returns resp_body,code,err
 	reqJSON, json_err := json.Marshal(update_item)
 	if json_err != nil {
 		return nil, 0, json_err
 	}
-	return authreq.RetryReqJSON_V4(reqJSON, UPDATEITEM_ENDPOINT)
+	return authreq.RetryReqJSON_V4WithConf(reqJSON, UPDATEITEM_ENDPOINT, c)
+}
+
+func (update *Update) EndpointReqWithConf(c *conf.AWS_Conf) ([]byte, int, error) {
+	if update == nil {
+		return nil, 0, errors.New("update_item.(Update)EndpointReqWithConf: receiver is nil")
+	}
+	update_item := UpdateItem(*update)
+	return update_item.EndpointReqWithConf(c)
+}
+
+func (req *Request) EndpointReqWithConf(c *conf.AWS_Conf) ([]byte, int, error) {
+	if req == nil {
+		return nil, 0, errors.New("update_item.(Request)EndpointReqWithConf: receiver is nil")
+	}
+	update_item := UpdateItem(*req)
+	return update_item.EndpointReqWithConf(c)
+}
+
+// These implementations of EndpointReq use the global conf.
+
+func (update_item *UpdateItem) EndpointReq() ([]byte, int, error) {
+	if update_item == nil {
+		return nil, 0, errors.New("update_item.(UpdateItem)EndpointReq: receiver is nil")
+	}
+	return update_item.EndpointReqWithConf(&conf.Vals)
 }
 
 func (update *Update) EndpointReq() ([]byte, int, error) {
+	if update == nil {
+		return nil, 0, errors.New("update_item.(Update)EndpointReq: receiver is nil")
+	}
 	update_item := UpdateItem(*update)
-	return update_item.EndpointReq()
+	return update_item.EndpointReqWithConf(&conf.Vals)
 }
 
 func (req *Request) EndpointReq() ([]byte, int, error) {
+	if req == nil {
+		return nil, 0, errors.New("update_item.(Request)EndpointReq: receiver is nil")
+	}
 	update_item := UpdateItem(*req)
-	return update_item.EndpointReq()
+	return update_item.EndpointReqWithConf(&conf.Vals)
 }

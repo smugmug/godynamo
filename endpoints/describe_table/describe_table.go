@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"github.com/smugmug/godynamo/authreq"
 	"github.com/smugmug/godynamo/aws_const"
+	"github.com/smugmug/godynamo/conf"
 	ep "github.com/smugmug/godynamo/endpoint"
 	"github.com/smugmug/godynamo/types/attributedefinition"
 	"github.com/smugmug/godynamo/types/globalsecondaryindex"
@@ -70,33 +71,75 @@ type StatusResult struct {
 	StatusResult bool
 }
 
-func (describe_table *DescribeTable) EndpointReq() ([]byte, int, error) {
+// These implementations of EndpointReq use a parameterized conf.
+
+func (describe_table *DescribeTable) EndpointReqWithConf(c *conf.AWS_Conf) ([]byte, int, error) {
+	if describe_table == nil {
+		return nil, 0, errors.New("describe_table.(DescribeTable)EndpointReqWithConf: receiver is nil")
+	}
+	if !conf.IsValid(c) {
+		return nil, 0, errors.New("describe_table.EndpointReqWithConf: c is not valid")
+	}
 	// returns resp_body,code,err
 	reqJSON, json_err := json.Marshal(describe_table)
 	if json_err != nil {
 		return nil, 0, json_err
 	}
-	return authreq.RetryReqJSON_V4(reqJSON, DESCTABLE_ENDPOINT)
+	return authreq.RetryReqJSON_V4WithConf(reqJSON, DESCTABLE_ENDPOINT, c)
+}
+
+func (describe *Describe) EndpointReqWithConf(c *conf.AWS_Conf) ([]byte, int, error) {
+	if describe == nil {
+		return nil, 0, errors.New("describe_table.(Describe)EndpointReqWithConf: receiver is nil")
+	}
+	describe_table := DescribeTable(*describe)
+	return describe_table.EndpointReqWithConf(c)
+}
+
+func (req *Request) EndpointReqWithConf(c *conf.AWS_Conf) ([]byte, int, error) {
+	if req == nil {
+		return nil, 0, errors.New("describe_table.(Request)EndpointReqWithConf: receiver is nil")
+	}
+	describe_table := DescribeTable(*req)
+	return describe_table.EndpointReqWithConf(c)
+}
+
+// These implementations of EndpointReq use the global conf.
+
+func (describe_table *DescribeTable) EndpointReq() ([]byte, int, error) {
+	if describe_table == nil {
+		return nil, 0, errors.New("describe_table.(DescribeTable)EndpointReq: receiver is nil")
+	}
+	return describe_table.EndpointReqWithConf(&conf.Vals)
 }
 
 func (describe *Describe) EndpointReq() ([]byte, int, error) {
+	if describe == nil {
+		return nil, 0, errors.New("describe_table.(Describe)EndpointReq: receiver is nil")
+	}
 	describe_table := DescribeTable(*describe)
-	return describe_table.EndpointReq()
+	return describe_table.EndpointReqWithConf(&conf.Vals)
 }
 
 func (req *Request) EndpointReq() ([]byte, int, error) {
+	if req == nil {
+		return nil, 0, errors.New("describe_table.(Request)EndpointReq: receiver is nil")
+	}
 	describe_table := DescribeTable(*req)
-	return describe_table.EndpointReq()
+	return describe_table.EndpointReqWithConf(&conf.Vals)
 }
 
-// PollTableStatus allows the caller to poll a table for a specific status.
-func PollTableStatus(tablename string, status string, tries int) (bool, error) {
+// PollTableStatusWithConf allows the caller to poll a table for a specific status.
+func PollTableStatusWithConf(tablename string, status string, tries int, c *conf.AWS_Conf) (bool, error) {
+	if !conf.IsValid(c) {
+		return false, errors.New("describe_table.PollTableStatusWithConf: c is not valid")
+	}
 	// aws docs informs us to poll the describe endpoint until the table
 	// "status" is status for this tablename
 	wait := time.Duration(2 * time.Second)
 
 	for i := 0; i < tries; i++ {
-		active, err := IsTableStatus(tablename, status)
+		active, err := IsTableStatusWithConf(tablename, status, c)
 		if err != nil {
 			e := fmt.Sprintf("describe_table.PollStatus:%s",
 				err.Error())
@@ -110,10 +153,18 @@ func PollTableStatus(tablename string, status string, tries int) (bool, error) {
 	return false, nil
 }
 
-// IsTableStatus will test the equality status of a table.
-func IsTableStatus(tablename string, status string) (bool, error) {
+// PollTableStatus is the same as PollTableStatusWithConf but uses the global conf.Vals.
+func PollTableStatus(tablename string, status string, tries int) (bool, error) {
+	return PollTableStatusWithConf(tablename, status, tries, &conf.Vals)
+}
+
+// IsTableStatusWithConf will test the equality status of a table.
+func IsTableStatusWithConf(tablename string, status string, c *conf.AWS_Conf) (bool, error) {
+	if !conf.IsValid(c) {
+		return false, errors.New("describe_table.IsTableStatusWithConf: c is not valid")
+	}
 	d := ep.Endpoint(&DescribeTable{TableName: tablename})
-	s_resp, s_code, s_err := authreq.RetryReq_V4(d, DESCTABLE_ENDPOINT)
+	s_resp, s_code, s_err := authreq.RetryReq_V4WithConf(d, DESCTABLE_ENDPOINT, c)
 	if s_err != nil {
 		e := fmt.Sprintf("describe_table.IsTableStatus: "+
 			"check on %s err %s",
@@ -139,13 +190,26 @@ func IsTableStatus(tablename string, status string) (bool, error) {
 	return false, errors.New(e)
 }
 
-// TableExists test for table exists: exploit the fact that aws reports 4xx for tables that don't exist.
-func (desc DescribeTable) TableExists() (bool, error) {
-	_, code, err := desc.EndpointReq()
+// IsTableStatus is the same as IsTableStatusWithConf but uses the global conf.Vals.
+func IsTableStatus(tablename string, status string) (bool, error) {
+	return IsTableStatusWithConf(tablename, status, &conf.Vals)
+}
+
+// TableExistsWithconf test for table exists: exploit the fact that aws reports 4xx for tables that don't exist.
+func (desc DescribeTable) TableExistsWithConf(c *conf.AWS_Conf) (bool, error) {
+	if !conf.IsValid(c) {
+		return false, errors.New("describe_table.TableExistsWithConf: c is not valid")
+	}
+	_, code, err := desc.EndpointReqWithConf(c)
 	if err != nil {
-		e := fmt.Sprintf("describe_table.TableExists "+
+		e := fmt.Sprintf("describe_table.TableExistsWithConf "+
 			"%s", err.Error())
 		return false, errors.New(e)
 	}
 	return (code == http.StatusOK), nil
+}
+
+// TableExists is the same as TableExistsWithConf but uses the global conf.Vals.
+func (desc DescribeTable) TableExists() (bool, error) {
+	return desc.TableExistsWithConf(&conf.Vals)
 }

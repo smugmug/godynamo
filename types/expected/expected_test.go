@@ -10,21 +10,22 @@ import (
 func TestExpectedMarshal(t *testing.T) {
 	s := []string{
 		`{"MyConstraint1":{"AttributeValueList":[{"S":"a string"}],"ComparisonOperator":"BEGINS_WITH","Value":{"N":"4"},"Exists":true}}`,
-		`{"MyConstraint2":{"AttributeValueList":[{"S":"a string"}],"ComparisonOperator":"BEGINS_WITH","Value":{"N":"4"}}}`,
+		`{"MyConstraint2":{"AttributeValueList":[{"S":"a string"}],"ComparisonOperator":"BEGINS_WITH","Value":{"N":"4"},"Exists":false}}`,
 	}
-	for _, v := range s {
+	for i, v := range s {
 		var a Expected
 		um_err := json.Unmarshal([]byte(v), &a)
 		if um_err != nil {
-			_ = fmt.Sprintf("%v\n", um_err)
 			t.Errorf("cannot unmarshal\n")
 		}
-
 		json, jerr := json.Marshal(a)
 		if jerr != nil {
-			_ = fmt.Sprintf("%v\n", jerr)
 			t.Errorf("cannot marshal\n")
 		}
-		_ = fmt.Sprintf("IN:%v, OUT:%v\n", v, string(json))
+		if len(s[i]) != len(string(json)) {
+			e := fmt.Sprintf("\n%s\n%s\nshould be same",s[i],string(json))
+			t.Errorf(e)
+			return
+		}
 	}
 }

@@ -23,7 +23,7 @@ func (s SetList) MarshalJSON() ([]byte, error) {
 	}
 	t := make([]string, len(m))
 	i := 0
-	for k, _ := range m {
+	for k := range m {
 		t[i] = k
 		i++
 	}
@@ -33,7 +33,7 @@ func (s SetList) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON will remove duplicates
 func (s *SetList) UnmarshalJSON(data []byte) error {
 	if s == nil {
-		return errors.New("pointer receiver for unmarshal nil")
+		return errors.New("AttributeValue.UnmarshalJSON: pointer receiver for unmarshal nil")
 	}
 	t := make([]string, 0)
 	um_err := json.Unmarshal(data, &t)
@@ -44,7 +44,7 @@ func (s *SetList) UnmarshalJSON(data []byte) error {
 	for _, v := range t {
 		m[v] = true
 	}
-	for k, _ := range m {
+	for k := range m {
 		*s = append(*s, k)
 	}
 	return nil
@@ -70,7 +70,7 @@ type AttributeValue struct {
 
 // Empty determines if an AttributeValue is vacuous. Explicitly do not bother
 // testing the boolean fields.
-func (a *AttributeValue) Empty() bool {
+func (a AttributeValue) Empty() bool {
 	return a.N == "" &&
 		a.S == "" &&
 		a.B == "" &&
@@ -87,7 +87,7 @@ type attributevalue AttributeValue
 
 // MarshalJSON will emit null if the AttributeValue is Empty
 func (a AttributeValue) MarshalJSON() ([]byte, error) {
-	if a.Empty() || (nil == &a) {
+	if a.Empty() {
 		return json.Marshal(nil)
 	} else {
 		return json.Marshal(attributevalue(a))
@@ -96,6 +96,9 @@ func (a AttributeValue) MarshalJSON() ([]byte, error) {
 
 // Valid determines if more than one field has been set (in which case it is invalid).
 func (a *AttributeValue) Valid() bool {
+	if a == nil {
+		return false
+	}
 	c := 0
 	if a.S != "" {
 		c++
@@ -157,7 +160,7 @@ func (a *AttributeValue) Valid() bool {
 			return false
 		}
 	}
-	return true
+	return c == 1
 }
 
 func NewAttributeValue() *AttributeValue {
@@ -175,8 +178,11 @@ func NewAttributeValue() *AttributeValue {
 
 // Copy makes a copy of the this AttributeValue.
 func (a *AttributeValue) Copy(ac *AttributeValue) error {
+	if a == nil {
+		return errors.New("AttributeValue.Copy: pointer receiver is nil")
+	}
 	if ac == nil {
-		return errors.New("copy target attributevalue instance is nil")
+		return errors.New("AttributeValue.Copy: copy target attributevalue instance is nil")
 	}
 	ac.S = a.S
 	ac.N = a.N
@@ -218,7 +224,7 @@ func (a *AttributeValue) Copy(ac *AttributeValue) error {
 	l_L := len(a.L)
 	if l_L != 0 {
 		ac.L = make([]*AttributeValue, l_L)
-		for i, _ := range a.L {
+		for i := range a.L {
 			ac.L[i] = NewAttributeValue()
 			L_i_cp_err := a.L[i].Copy(ac.L[i])
 			if L_i_cp_err != nil {
@@ -231,7 +237,7 @@ func (a *AttributeValue) Copy(ac *AttributeValue) error {
 	l_M := len(a.M)
 	if l_M != 0 {
 		ac.M = make(map[string]*AttributeValue, l_M)
-		for k, _ := range a.M {
+		for k := range a.M {
 			ac.M[k] = NewAttributeValue()
 			M_k_cp_err := a.M[k].Copy(ac.M[k])
 			if M_k_cp_err != nil {
@@ -244,12 +250,18 @@ func (a *AttributeValue) Copy(ac *AttributeValue) error {
 
 // InsertS sets the S field to string k
 func (a *AttributeValue) InsertS(k string) error {
+	if a == nil {
+		return errors.New("AttributeValue.InsertS: pointer receiver is nil")
+	}
 	a.S = k
 	return nil
 }
 
 // InsertN sets the N field to number string k
 func (a *AttributeValue) InsertN(k string) error {
+	if a == nil {
+		return errors.New("AttributeValue.InsertN: pointer receiver is nil")
+	}
 	fs, ferr := cast.AWSParseFloat(k)
 	if ferr != nil {
 		return ferr
@@ -260,6 +272,9 @@ func (a *AttributeValue) InsertN(k string) error {
 
 // InsertN_float64 works like InsertN but takes a float64
 func (a *AttributeValue) InsertN_float64(f float64) error {
+	if a == nil {
+		return errors.New("AttributeValue.InsertN_float64: pointer receiver is nil")
+	}
 	a.N = strconv.FormatFloat(f, 'f', -1, 64)
 	return nil
 }
@@ -267,6 +282,9 @@ func (a *AttributeValue) InsertN_float64(f float64) error {
 // InsertB sets the B field to string k, which it is assumed the caller has
 // already encoded.
 func (a *AttributeValue) InsertB(k string) error {
+	if a == nil {
+		return errors.New("AttributeValue.InsertB: pointer receiver is nil")
+	}
 	berr := cast.AWSParseBinary(k)
 	if berr != nil {
 		return berr
@@ -278,6 +296,9 @@ func (a *AttributeValue) InsertB(k string) error {
 // InsertB_unencoded adds a new plain string to the B field.
 // The argument is assumed to be plaintext and will be base64 encoded.
 func (a *AttributeValue) InsertB_unencoded(k string) error {
+	if a == nil {
+		return errors.New("AttributeValue.Insert_unencoded: pointer receiver is nil")
+	}
 	a.B = base64.StdEncoding.EncodeToString([]byte(k))
 	return nil
 }
@@ -286,6 +307,9 @@ func (a *AttributeValue) InsertB_unencoded(k string) error {
 // SS is *generated* from an internal representation (UM_ss)
 // as it transforms a map into a list (a "set")
 func (a *AttributeValue) InsertSS(k string) error {
+	if a == nil {
+		return errors.New("AttributeValue.InsertSS: pointer receiver is nil")
+	}
 	for _, v := range a.SS {
 		if v == k {
 			return nil
@@ -300,6 +324,9 @@ func (a *AttributeValue) InsertSS(k string) error {
 // NS is *generated* from an internal representation (UM_ns)
 // as it transforms a map into a list (a "set")
 func (a *AttributeValue) InsertNS(k string) error {
+	if a == nil {
+		return errors.New("AttributeValue.InsertNS: pointer receiver is nil")
+	}
 	fs, ferr := cast.AWSParseFloat(k)
 	if ferr != nil {
 		return ferr
@@ -315,6 +342,9 @@ func (a *AttributeValue) InsertNS(k string) error {
 
 // InsertNS_float64 works like InsertNS but takes a float64
 func (a *AttributeValue) InsertNS_float64(f float64) error {
+	if a == nil {
+		return errors.New("AttributeValue.InsertNS_float64: pointer receiver is nil")
+	}
 	k := strconv.FormatFloat(f, 'f', -1, 64)
 	for _, v := range a.NS {
 		if v == k {
@@ -331,6 +361,9 @@ func (a *AttributeValue) InsertNS_float64(f float64) error {
 // as it transforms a map into a list (a "set").
 // The argument is assumed to be already encoded by the caller.
 func (a *AttributeValue) InsertBS(k string) error {
+	if a == nil {
+		return errors.New("AttributeValue.InsertBS: pointer receiver is nil")
+	}
 	berr := cast.AWSParseBinary(k)
 	if berr != nil {
 		return berr
@@ -349,6 +382,9 @@ func (a *AttributeValue) InsertBS(k string) error {
 // as it transforms a map into a list (a "set").
 // The argument is assumed to be plaintext and will be base64 encoded.
 func (a *AttributeValue) InsertBS_unencoded(k string) error {
+	if a == nil {
+		return errors.New("AttributeValue.InsertBS_unencoded: pointer receiver is nil")
+	}
 	b64_k := base64.StdEncoding.EncodeToString([]byte(k))
 	for _, v := range a.BS {
 		if v == b64_k {
@@ -361,6 +397,9 @@ func (a *AttributeValue) InsertBS_unencoded(k string) error {
 
 // InsertL will append a pointer to a new AttributeValue v to the L list.
 func (a *AttributeValue) InsertL(v *AttributeValue) error {
+	if a == nil {
+		return errors.New("AttributeValue.InsertL: pointer receiver is nil")
+	}
 	v_cp := NewAttributeValue()
 	cp_err := v.Copy(v_cp)
 	if cp_err != nil {
@@ -373,6 +412,9 @@ func (a *AttributeValue) InsertL(v *AttributeValue) error {
 // InsertM will insert a pointer to a new AttributeValue v to the M map for key k.
 // If k was previously set in the M map, the value will be overwritten.
 func (a *AttributeValue) InsertM(k string, v *AttributeValue) error {
+	if a == nil {
+		return errors.New("AttributeValue.InsertM: pointer receiver is nil")
+	}
 	v_cp := NewAttributeValue()
 	cp_err := v.Copy(v_cp)
 	if cp_err != nil {
@@ -384,6 +426,9 @@ func (a *AttributeValue) InsertM(k string, v *AttributeValue) error {
 
 // InsertBOOL will set the BOOL field.
 func (a *AttributeValue) InsertBOOL(b bool) error {
+	if a == nil {
+		return errors.New("AttributeValue.InsertBOOL: pointer receiver is nil")
+	}
 	if a.BOOL == nil {
 		a.BOOL = new(bool)
 	}
@@ -393,6 +438,9 @@ func (a *AttributeValue) InsertBOOL(b bool) error {
 
 // InsertNULL will set the NULL field.
 func (a *AttributeValue) InsertNULL(b bool) error {
+	if a == nil {
+		return errors.New("AttributeValue.InsertNULL: pointer receiver is nil")
+	}
 	if a.NULL == nil {
 		a.NULL = new(bool)
 	}
@@ -433,7 +481,7 @@ func NewAttributeValueUpdateMap() AttributeValueUpdateMap {
 // (see http://aws.amazon.com/blogs/aws/dynamodb-update-json-and-more/)
 func BasicJSONToAttributeValueMap(b []byte) (AttributeValueMap, error) {
 	if b == nil {
-		return nil, errors.New("arg is nil")
+		return nil, errors.New("AttributeValue.Insert.BasicJSONToAttributeValueMap: arg is nil")
 	}
 	// unmarshal the arbitrary json
 	var i interface{}
@@ -449,7 +497,7 @@ func BasicJSONToAttributeValueMap(b []byte) (AttributeValueMap, error) {
 func InterfaceToAttributeValueMap(i interface{}) (AttributeValueMap, error) {
 	m, m_ok := i.(map[string]interface{})
 	if !m_ok {
-		return nil, errors.New("top level unmarshal not (map[string] interface{})")
+		return nil, errors.New("AttributeValue.InterfaceToAttributeValueMap: top level unmarshal not (map[string] interface{})")
 	}
 	avm := NewAttributeValueMap()
 	for k, v := range m {
@@ -468,7 +516,7 @@ func InterfaceToAttributeValueMap(i interface{}) (AttributeValueMap, error) {
 // (see http://aws.amazon.com/blogs/aws/dynamodb-update-json-and-more/)
 func BasicJSONToAttributeValue(b []byte) (*AttributeValue, error) {
 	if b == nil {
-		return nil, errors.New("arg is nil")
+		return nil, errors.New("AttributeValue.Insert.BasicJSONToAttributeValue: arg is nil")
 	}
 	// unmarshal the arbitrary json
 	var i interface{}
@@ -589,9 +637,6 @@ func CoerceToAttributeValue(i interface{}) (*AttributeValue, error) {
 // ToBasicJSON provides a mapping from an AttributeValueMap to basic json
 // This allows for items from dynamo to be printed in a flat fashion if desired.
 func (a AttributeValueMap) ToBasicJSON() ([]byte, error) {
-	if a == nil {
-		return nil, errors.New("nil AttributeValueMap")
-	}
 	c, cerr := a.ToInterface()
 	if cerr != nil {
 		return nil, cerr
@@ -607,9 +652,6 @@ func (a AttributeValueMap) ToBasicJSON() ([]byte, error) {
 // AttributeValueMapToInterface converts the map into a map of the key names to interface types
 // that do not have type designations, and be marshaled into basic json
 func (a AttributeValueMap) ToInterface() (interface{}, error) {
-	if a == nil {
-		return "", errors.New("nil AttributeValueMap")
-	}
 	m := make(map[string]interface{})
 	for k, v := range a {
 		c, cerr := v.ToInterface()
@@ -626,7 +668,7 @@ func (a AttributeValueMap) ToInterface() (interface{}, error) {
 // This allows for items from dynamo to be printed in a flat fashion if desired.
 func (a *AttributeValue) ToBasicJSON() ([]byte, error) {
 	if a == nil {
-		return nil, errors.New("nil AttributeValue")
+		return nil, errors.New("AttributeValue.ToBasicJSON: pointer receiver is nil")
 	}
 	c, cerr := a.ToInterface()
 	if cerr != nil {
@@ -644,7 +686,7 @@ func (a *AttributeValue) ToBasicJSON() ([]byte, error) {
 // that can be marshaled into basic json.
 func (a *AttributeValue) ToInterface() (interface{}, error) {
 	if a == nil {
-		return "", errors.New("nil AttributeValue")
+		return "", errors.New("AttributeValue.ToInterface: pointer receiver is nil")
 	}
 	if a.BOOL != nil {
 		return *a.BOOL, nil

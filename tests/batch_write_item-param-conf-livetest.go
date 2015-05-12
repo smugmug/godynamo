@@ -4,18 +4,29 @@ import (
 	"fmt"
 	"github.com/smugmug/godynamo/conf"
 	"github.com/smugmug/godynamo/conf_file"
-	conf_iam "github.com/smugmug/godynamo/conf_iam"
 	batch_write_item "github.com/smugmug/godynamo/endpoints/batch_write_item"
-	keepalive "github.com/smugmug/godynamo/keepalive"
 	"github.com/smugmug/godynamo/types/attributevalue"
 	"github.com/smugmug/godynamo/types/item"
-	"log"
 	"net/http"
+	"os"
 )
+
+// these tests are just like batch_write_item-livestest except they use a parameterized conf
 
 // this tests "RetryBatchWrite", which does NOT do intelligent splitting and re-assembling
 // of requests and responses
 func Test1() {
+	home := os.Getenv("HOME")
+	home_conf_file := home + string(os.PathSeparator) + "." + conf.CONF_NAME
+	home_conf, home_conf_err := conf_file.ReadConfFile(home_conf_file)
+	if home_conf_err != nil {
+		panic("cannot read conf from " + home_conf_file)
+	}
+	home_conf.ConfLock.RLock()
+	if home_conf.Initialized == false {
+		panic("conf struct has not been initialized")
+	}
+
 	tn := "test-godynamo-livetest"
 	b := batch_write_item.NewBatchWriteItem()
 	b.RequestItems[tn] = make([]batch_write_item.RequestInstance, 0)
@@ -33,7 +44,7 @@ func Test1() {
 	}
 	bs, _ := batch_write_item.Split(b)
 	for _, bsi := range bs {
-		body, code, err := bsi.RetryBatchWrite(0)
+		body, code, err := bsi.RetryBatchWriteWithConf(0, home_conf)
 		if err != nil || code != http.StatusOK {
 			fmt.Printf("error: %v\n%v\n%v\n", string(body), code, err)
 		} else {
@@ -45,6 +56,17 @@ func Test1() {
 // this tests "DoBatchWrite", which breaks up requests that are larger than the limit
 // and re-assembles responses
 func Test2() {
+	home := os.Getenv("HOME")
+	home_conf_file := home + string(os.PathSeparator) + "." + conf.CONF_NAME
+	home_conf, home_conf_err := conf_file.ReadConfFile(home_conf_file)
+	if home_conf_err != nil {
+		panic("cannot read conf from " + home_conf_file)
+	}
+	home_conf.ConfLock.RLock()
+	if home_conf.Initialized == false {
+		panic("conf struct has not been initialized")
+	}
+
 	b := batch_write_item.NewBatchWriteItem()
 	tn := "test-godynamo-livetest"
 	b.RequestItems[tn] = make([]batch_write_item.RequestInstance, 0)
@@ -60,31 +82,11 @@ func Test2() {
 			append(b.RequestItems[tn],
 				batch_write_item.RequestInstance{PutRequest: &p})
 	}
-	body, code, err := b.DoBatchWrite()
+	body, code, err := b.DoBatchWriteWithConf(home_conf)
 	fmt.Printf("%v\n%v\n%v\n", string(body), code, err)
 }
 
 func main() {
-	conf_file.Read()
-	conf.Vals.ConfLock.RLock()
-	if conf.Vals.Initialized == false {
-		panic("the conf.Vals global conf struct has not been initialized")
-	}
-
-	// launch a background poller to keep conns to aws alive
-	if conf.Vals.Network.DynamoDB.KeepAlive {
-		log.Printf("launching background keepalive")
-		go keepalive.KeepAlive([]string{})
-	}
-
-	// deal with iam, or not
-	if conf.Vals.UseIAM {
-		iam_ready_chan := make(chan bool)
-		go conf_iam.GoIAM(iam_ready_chan)
-		_ = <-iam_ready_chan
-	}
-	conf.Vals.ConfLock.RUnlock()
-
 	Test1()
 	Test2()
 }

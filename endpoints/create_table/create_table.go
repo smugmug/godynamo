@@ -8,8 +8,10 @@ package create_table
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/smugmug/godynamo/authreq"
 	"github.com/smugmug/godynamo/aws_const"
+	"github.com/smugmug/godynamo/conf"
 	"github.com/smugmug/godynamo/types/attributedefinition"
 	"github.com/smugmug/godynamo/types/globalsecondaryindex"
 	"github.com/smugmug/godynamo/types/keydefinition"
@@ -76,23 +78,62 @@ func NewResponse() *Response {
 	return r
 }
 
-func (create_table *CreateTable) EndpointReq() ([]byte, int, error) {
+// These implementations of EndpointReq use a parameterized conf.
+
+func (create_table *CreateTable) EndpointReqWithConf(c *conf.AWS_Conf) ([]byte, int, error) {
+	if create_table == nil {
+		return nil, 0, errors.New("create_table.(CreateTable)EndpointReqWithConf: receiver is nil")
+	}
+	if !conf.IsValid(c) {
+		return nil, 0, errors.New("create_table.EndpointReqWithConf: c is not valid")
+	}
 	// returns resp_body,code,err
 	reqJSON, json_err := json.Marshal(create_table)
 	if json_err != nil {
 		return nil, 0, json_err
 	}
-	return authreq.RetryReqJSON_V4(reqJSON, CREATETABLE_ENDPOINT)
+	return authreq.RetryReqJSON_V4WithConf(reqJSON, CREATETABLE_ENDPOINT, c)
+}
+
+func (create *Create) EndpointReqWithConf(c *conf.AWS_Conf) ([]byte, int, error) {
+	if create == nil {
+		return nil, 0, errors.New("create_table.(Create)EndpointReqWithConf: receiver is nil")
+	}
+	create_table := CreateTable(*create)
+	return create_table.EndpointReqWithConf(c)
+}
+
+func (req *Request) EndpointReqWithConf(c *conf.AWS_Conf) ([]byte, int, error) {
+	if req == nil {
+		return nil, 0, errors.New("create_table.(Request)EndpointReqWithConf: receiver is nil")
+	}
+	create_table := CreateTable(*req)
+	return create_table.EndpointReqWithConf(c)
+}
+
+// These implementations of EndpointReq use the global conf.
+
+func (create_table *CreateTable) EndpointReq() ([]byte, int, error) {
+	if create_table == nil {
+		return nil, 0, errors.New("create_table.(CreateTable)EndpointReq: receiver is nil")
+	}
+	return create_table.EndpointReqWithConf(&conf.Vals)
 }
 
 func (create *Create) EndpointReq() ([]byte, int, error) {
+	if create == nil {
+		return nil, 0, errors.New("create_table.(Create)EndpointReq: receiver is nil")
+	}
 	create_table := CreateTable(*create)
-	return create_table.EndpointReq()
+	return create_table.EndpointReqWithConf(&conf.Vals)
 }
 
 func (req *Request) EndpointReq() ([]byte, int, error) {
+	if req == nil {
+		return nil, 0, errors.New("create_table.(Request)EndpointReq: receiver is nil")
+	}
 	create_table := CreateTable(*req)
-	return create_table.EndpointReq()
+	return create_table.EndpointReqWithConf(&conf.Vals)
 }
 
 // ValidTable is a local validator that helps callers determine if a table name is too long.

@@ -6,6 +6,14 @@ import (
 	"testing"
 )
 
+func TestNil(t *testing.T) {
+	q := NewQuery()
+	_,_,err := q.EndpointReqWithConf(nil)
+	if err == nil {
+		t.Errorf("nil conf should result in error")
+	}
+}
+
 func TestRequestUnmarshal(t *testing.T) {
 	s := []string{`{"TableName":"Thread","IndexName":"LastPostIndex","Select":"ALL_ATTRIBUTES","Limit":3,"ConsistentRead":true,"KeyConditions":{"LastPostDateTime":{"AttributeValueList":[{"S":"20130101"},{"S":"20130115"}],"ComparisonOperator":"BETWEEN"},"ForumName":{"AttributeValueList":[{"S":"AmazonDynamoDB"}],"ComparisonOperator":"EQ"}}}`, `{"TableName":"Thread","Select":"COUNT","ConsistentRead":true,"KeyConditions":{"ForumName":{"AttributeValueList":[{"S":"AmazonDynamoDB"}],"ComparisonOperator":"EQ"}}}`}
 	for _, v := range s {
@@ -15,11 +23,10 @@ func TestRequestUnmarshal(t *testing.T) {
 			e := fmt.Sprintf("unmarshal Query: %v", um_err)
 			t.Errorf(e)
 		}
-		json, jerr := json.Marshal(q)
+		_, jerr := json.Marshal(q)
 		if jerr != nil {
 			t.Errorf("cannot marshal\n")
 		}
-		_ = fmt.Sprintf("IN:%v, OUT:%v\n", v, string(json))
 	}
 }
 
@@ -32,10 +39,9 @@ func TestResponseUnmarshal(t *testing.T) {
 			e := fmt.Sprintf("unmarshal Response: %v", um_err)
 			t.Errorf(e)
 		}
-		json, jerr := json.Marshal(q)
+		_, jerr := json.Marshal(q)
 		if jerr != nil {
 			t.Errorf("cannot marshal\n")
 		}
-		_ = fmt.Sprintf("IN:%v, OUT:%v\n", v, string(json))
 	}
 }

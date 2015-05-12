@@ -3,19 +3,19 @@ December 3, 2014
 
 - All endpoints now return []byte instead of string for the response body. This
   reduces some needless type transformations.
-  
+
 
 October 27, 2014
 ----------------
 
 - Bring GoDynamo into conformance with substantial DynamoDB changes rolled out by
-  AWS in October 2014. 
+  AWS in October 2014.
 
 - This is a major, breaking change in the GoDynamo package. Caution is warranted,
   and users should expect existing code to require attention. Given the
   amount of code changed, bugs should be anticipated.
 
-- Types from the "endpoint" package are now broken out into their own 
+- Types from the "endpoint" package are now broken out into their own
   files in the "types" directory.
 
 - In many cases, value types have been replaced by reference types.
@@ -40,3 +40,18 @@ March 25, 2014
 
 - Add support for environment var conf file. (donholly)
 
+
+May 2015
+--------
+
+- Many users have requested parameterized configurations. It is clear that a global "conf.Vals"
+  was not a useful solution for many people. This major update provides support for parameterized
+  configurations at all levels of the api, and in all cases, this is the default. No apis have
+  been broken - existing methods that assumed a global "conf.Vals" configuration variable will
+  simply provide that as a parameter to the new functions, which have a naming scheme of
+  "WithConf" (EndpointReq vs. EndpointReqWithConf etc). Your existing code should continue to
+  work! If existing code breaks, please file an issue, my goal was to make this a transparent
+  upgrade.
+
+- The "tests" directory now has live tests that use the parameterized configuration which you
+  can use as examples to mine for code.

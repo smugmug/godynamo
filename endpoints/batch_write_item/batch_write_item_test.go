@@ -8,6 +8,14 @@ import (
 	"testing"
 )
 
+func TestNil(t *testing.T) {
+	b := NewBatchWriteItem()
+	_,_,err := b.DoBatchWriteWithConf(nil)
+	if err == nil {
+		t.Errorf("nil conf should result in error")
+	}
+}
+
 func TestRequestUnmarshal(t *testing.T) {
 	s := []string{
 		`{"RequestItems":{"Forum":[{"PutRequest":{"Item":{"Name":{"S":"AmazonDynamoDB"},"Category":{"S":"AmazonWebServices"}}}},{"PutRequest":{"Item":{"Name":{"S":"AmazonRDS"},"Category":{"S":"AmazonWebServices"}}}},{"PutRequest":{"Item":{"Name":{"S":"AmazonRedshift"},"Category":{"S":"AmazonWebServices"}}}},{"PutRequest":{"Item":{"Name":{"S":"AmazonElastiCache"},"Category":{"S":"AmazonWebServices"}}}}]},"ReturnConsumedCapacity":"TOTAL"}`,
