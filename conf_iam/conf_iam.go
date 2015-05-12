@@ -157,6 +157,8 @@ func GoIAMToConf(c *conf.AWS_Conf, ready_chan chan bool) {
 		}
 	} else {
 		// signal to the caller than iam roles are not selected as a auth mechanism
+		e := fmt.Sprintf("conf_iam.GoIAMToConf: not using IAM")
+		log.Printf(e)
 		ready_chan <- false
 	}
 }
