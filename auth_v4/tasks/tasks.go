@@ -48,7 +48,7 @@ func cacheable_hmacs(zone, service, secret string) ([]byte, string) {
 }
 
 // CanonicalRequest will create the aws v4 `canonical request`.
-// May be useful for creating v4 requests for services other than DynamoDB.
+// This function is specific to DynamoDB.
 func CanonicalRequest(host, port, amzDateHdr, amzTargetHdr, hexPayload string) string {
 	// Some AWS services use the x-amz-target header. Some don't. Allow it to
 	// be passed as empty when not used.

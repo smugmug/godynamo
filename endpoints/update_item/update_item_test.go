@@ -2,9 +2,16 @@ package update_item
 
 import (
 	"encoding/json"
-	"fmt"
 	"testing"
 )
+
+func TestNil(t *testing.T) {
+	s := NewUpdateItem()
+	_,_,err := s.EndpointReqWithConf(nil)
+	if err == nil {
+		t.Errorf("nil conf should result in error")
+	}
+}
 
 func TestRequestUnmarshal(t *testing.T) {
 	s := []string{`{"TableName":"Thread","Key":{"ForumName":{"S":"AmazonDynamoDB"},"Subject":{"S":"HowdoIupdatemultipleitems?"}},"AttributeUpdates":{"LastPostedBy":{"Value":{"S":"alice@example.com"},"Action":"PUT"}},"Expected":{"LastPostedBy":{"Value":{"S":"fred@example.com"},"Exists":true}},"ReturnValues":"ALL_NEW"}`, `{"TableName":"Thread","Key":{"ForumName":{"S":"AmazonDynamoDB"},"Subject":{"S":"Maximumnumberofitems?"}},"UpdateExpression":"setLastPostedBy=:val1","ConditionExpression":"LastPostedBy=:val2","ExpressionAttributeValues":{":val1":{"S":"alice@example.com"},":val2":{"S":"fred@example.com"}},"ReturnValues":"ALL_NEW"}`, `{"TableName":"Thread","Key":{"ForumName":{"S":"AmazonDynamoDB"},"Subject":{"S":"Aquestionaboutupdates"}},"UpdateExpression":"setReplies=Replies+:num","ExpressionAttributeValues":{":num":{"N":"1"}},"ReturnValues":"NONE"}`}
@@ -14,11 +21,10 @@ func TestRequestUnmarshal(t *testing.T) {
 		if um_err != nil {
 			t.Errorf("cannot unmarshal\n")
 		}
-		json, jerr := json.Marshal(u)
+		_, jerr := json.Marshal(u)
 		if jerr != nil {
 			t.Errorf("cannot marshal\n")
 		}
-		_ = fmt.Sprintf("IN:%v, OUT:%v\n", v, string(json))
 	}
 }
 
@@ -30,10 +36,9 @@ func TestResponseUnmarshal(t *testing.T) {
 		if um_err != nil {
 			t.Errorf("cannot unmarshal\n")
 		}
-		json, jerr := json.Marshal(u)
+		_, jerr := json.Marshal(u)
 		if jerr != nil {
 			t.Errorf("cannot marshal\n")
 		}
-		_ = fmt.Sprintf("IN:%v, OUT:%v\n", v, string(json))
 	}
 }

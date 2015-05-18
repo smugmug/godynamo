@@ -11,6 +11,7 @@ import (
 	"errors"
 	"github.com/smugmug/godynamo/authreq"
 	"github.com/smugmug/godynamo/aws_const"
+	"github.com/smugmug/godynamo/conf"
 	"github.com/smugmug/godynamo/types/attributesresponse"
 	"github.com/smugmug/godynamo/types/attributevalue"
 	"github.com/smugmug/godynamo/types/aws_strings"
@@ -117,23 +118,62 @@ func NewResponse() *Response {
 	return &r
 }
 
-func (put_item *PutItem) EndpointReq() ([]byte, int, error) {
+// These implementations of EndpointReq use a parameterized conf.
+
+func (put_item *PutItem) EndpointReqWithConf(c *conf.AWS_Conf) ([]byte, int, error) {
+	if put_item == nil {
+		return nil, 0, errors.New("put_item.(PutItem)EndpointReqWithConf: receiver is nil")
+	}
+	if !conf.IsValid(c) {
+		return nil, 0, errors.New("put_item.EndpointReqWithConf: c is not valid")
+	}
 	// returns resp_body,code,err
 	reqJSON, json_err := json.Marshal(put_item)
 	if json_err != nil {
 		return nil, 0, json_err
 	}
-	return authreq.RetryReqJSON_V4(reqJSON, PUTITEM_ENDPOINT)
+	return authreq.RetryReqJSON_V4WithConf(reqJSON, PUTITEM_ENDPOINT, c)
+}
+
+func (put *Put) EndpointReqWithConf(c *conf.AWS_Conf) ([]byte, int, error) {
+	if put == nil {
+		return nil, 0, errors.New("put_item.(Put)EndpointReqWithConf: receiver is nil")
+	}
+	put_item := PutItem(*put)
+	return put_item.EndpointReqWithConf(c)
+}
+
+func (req *Request) EndpointReqWithConf(c *conf.AWS_Conf) ([]byte, int, error) {
+	if req == nil {
+		return nil, 0, errors.New("put_item.(Request)EndpointReqWithConf: receiver is nil")
+	}
+	put_item := PutItem(*req)
+	return put_item.EndpointReqWithConf(c)
+}
+
+// These implementations of EndpointReq use the global conf.
+
+func (put_item *PutItem) EndpointReq() ([]byte, int, error) {
+	if put_item == nil {
+		return nil, 0, errors.New("put_item.(PutItem)EndpointReq: receiver is nil")
+	}
+	return put_item.EndpointReqWithConf(&conf.Vals)
 }
 
 func (put *Put) EndpointReq() ([]byte, int, error) {
+	if put == nil {
+		return nil, 0, errors.New("put_item.(Put)EndpointReq: receiver is nil")
+	}
 	put_item := PutItem(*put)
-	return put_item.EndpointReq()
+	return put_item.EndpointReqWithConf(&conf.Vals)
 }
 
 func (req *Request) EndpointReq() ([]byte, int, error) {
+	if req == nil {
+		return nil, 0, errors.New("put_item.(Request)EndpointReq: receiver is nil")
+	}
 	put_item := PutItem(*req)
-	return put_item.EndpointReq()
+	return put_item.EndpointReqWithConf(&conf.Vals)
 }
 
 // ValidItem validates the size of a json serialization of an Item.

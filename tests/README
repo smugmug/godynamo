@@ -15,6 +15,12 @@ the same table. You should first run "create_table-livetest.go", and when you
 are done, run "delete_table-livetest.go" to remove the table. Make sure the tablename
 in the files does not conflict with a table name you are using already.
 
+There are a number of programs here have "param-conf" in the filename. These are
+variants of the tests that do not use the global conf struct. They should
+work the same. These should be useful examples regarding the use of parameterized
+conf variables for those wanting that functionality. For new users of this library,
+you probably want to follow the "param-conf" examples.
+
 Many of these tests are "noisy" - they output JSON requests and responses in many
 cases. Just comment out parts that don't interest you.
 

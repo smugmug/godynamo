@@ -8,8 +8,10 @@ package delete_item
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/smugmug/godynamo/authreq"
 	"github.com/smugmug/godynamo/aws_const"
+	"github.com/smugmug/godynamo/conf"
 	"github.com/smugmug/godynamo/types/attributesresponse"
 	"github.com/smugmug/godynamo/types/attributevalue"
 	"github.com/smugmug/godynamo/types/aws_strings"
@@ -67,21 +69,60 @@ func NewResponse() *Response {
 	return &r
 }
 
-func (delete_item *DeleteItem) EndpointReq() ([]byte, int, error) {
+// These implementations of EndpointReq use a parameterized conf.
+
+func (delete_item *DeleteItem) EndpointReqWithConf(c *conf.AWS_Conf) ([]byte, int, error) {
+	if delete_item == nil {
+		return nil, 0, errors.New("delete_item.(DeleteItem)EndpointReqWithConf: receiver is nil")
+	}
+	if !conf.IsValid(c) {
+		return nil, 0, errors.New("delete_item.EndpointReqWithConf: c is not valid")
+	}
 	// returns resp_body,code,err
 	reqJSON, json_err := json.Marshal(delete_item)
 	if json_err != nil {
 		return nil, 0, json_err
 	}
-	return authreq.RetryReqJSON_V4(reqJSON, DELETEITEM_ENDPOINT)
+	return authreq.RetryReqJSON_V4WithConf(reqJSON, DELETEITEM_ENDPOINT, c)
+}
+
+func (delete *Delete) EndpointReqWithConf(c *conf.AWS_Conf) ([]byte, int, error) {
+	if delete == nil {
+		return nil, 0, errors.New("delete_item.(Delete)EndpointReqWithConf: receiver is nil")
+	}
+	delete_item := DeleteItem(*delete)
+	return delete_item.EndpointReqWithConf(c)
+}
+
+func (req *Request) EndpointReqWithConf(c *conf.AWS_Conf) ([]byte, int, error) {
+	if req == nil {
+		return nil, 0, errors.New("delete_item.(Request)EndpointReqWithConf: receiver is nil")
+	}
+	delete_item := DeleteItem(*req)
+	return delete_item.EndpointReqWithConf(c)
+}
+
+// These implementations of EndpointReq use the global conf.
+
+func (delete_item *DeleteItem) EndpointReq() ([]byte, int, error) {
+	if delete_item == nil {
+		return nil, 0, errors.New("delete_item.(DeleteItem)EndpointReq: receiver is nil")
+	}
+	return delete_item.EndpointReqWithConf(&conf.Vals)
 }
 
 func (delete *Delete) EndpointReq() ([]byte, int, error) {
+	if delete == nil {
+		return nil, 0, errors.New("delete_item.(Delete)EndpointReq: receiver is nil")
+	}
 	delete_item := DeleteItem(*delete)
-	return delete_item.EndpointReq()
+	return delete_item.EndpointReqWithConf(&conf.Vals)
 }
 
 func (req *Request) EndpointReq() ([]byte, int, error) {
+	if req == nil {
+		return nil, 0, errors.New("delete_item.(Request)EndpointReq: receiver is nil")
+	}
 	delete_item := DeleteItem(*req)
-	return delete_item.EndpointReq()
+	return delete_item.EndpointReqWithConf(&conf.Vals)
 }

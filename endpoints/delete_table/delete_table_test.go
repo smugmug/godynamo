@@ -2,9 +2,16 @@ package delete_table
 
 import (
 	"encoding/json"
-	"fmt"
 	"testing"
 )
+
+func TestNil(t *testing.T) {
+	d := NewDeleteTable()
+	_,_,err := d.EndpointReqWithConf(nil)
+	if err == nil {
+		t.Errorf("nil conf should result in error")
+	}
+}
 
 func TestRequestUnmarshal(t *testing.T) {
 	s := []string{
@@ -33,10 +40,9 @@ func TestResponseUnmarshal(t *testing.T) {
 		if um_err != nil {
 			t.Errorf("cannot unmarshal\n")
 		}
-		json, jerr := json.Marshal(u)
+		_, jerr := json.Marshal(u)
 		if jerr != nil {
 			t.Errorf("cannot marshal\n")
 		}
-		_ = fmt.Sprintf("IN:%v, OUT:%v\n", v, string(json))
 	}
 }

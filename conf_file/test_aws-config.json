@@ -1,0 +1,28 @@
+{
+    "extends":[],
+    "services": {
+        "default_settings":{
+            "params":{
+                "access_key_id":"myAccessKey",           
+                "secret_access_key":"mySecret",
+                "use_sys_log":true
+            }
+        },
+        "dynamo_db": {
+            "host":"dynamodb.us-east-1.amazonaws.com",
+            "zone":"us-east-1",
+            "scheme":"http",
+            "port":80,
+            "keepalive":false,
+            "iam": {
+                "use_iam":false,
+                "role_provider":"",
+                "access_key":"",
+                "secret_key":"",
+                "token":"",
+                "base_dir":"",
+                "watch":false
+            }
+        }
+    }
+}

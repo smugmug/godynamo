@@ -8,20 +8,21 @@ import (
 
 // Roundtrip some examples
 func TestGlobalSecondaryIndexMarshal(t *testing.T) {
-	s := []string{`{"IndexName":"LastPostIndex","KeySchema":[{"AttributeName": "ForumName","KeyType":"HASH"},{"AttributeName":"LastPostDateTime","KeyType": "RANGE"}],"Projection": {"ProjectionType": "KEYS_ONLY"},"ProvisionedThroughput": {"ReadCapacityUnits":200,"WriteCapacityUnits":200}}`}
-	for _, v := range s {
+	s := []string{`{"IndexName":"LastPostIndex","KeySchema":[{"AttributeName":"ForumName","KeyType":"HASH"},{"AttributeName":"LastPostDateTime","KeyType":"RANGE"}],"Projection":{"NonKeyAttributes":null,"ProjectionType":"KEYS_ONLY"},"ProvisionedThroughput":{"ReadCapacityUnits":200,"WriteCapacityUnits":200}}`}
+	for i, v := range s {
 		var a GlobalSecondaryIndex
 		um_err := json.Unmarshal([]byte(v), &a)
 		if um_err != nil {
-			_ = fmt.Sprintf("%v\n", um_err)
 			t.Errorf("cannot unmarshal\n")
 		}
 
 		json, jerr := json.Marshal(a)
 		if jerr != nil {
-			_ = fmt.Sprintf("%v\n", jerr)
 			t.Errorf("cannot marshal\n")
 		}
-		_ = fmt.Sprintf("IN:%v, OUT:%v\n", v, string(json))
+		if len(s[i]) != len(string(json)) {
+			e := fmt.Sprintf("\n%s\n%s\nshould be same",s[i],string(json))
+			t.Errorf(e)
+		}
 	}
 }

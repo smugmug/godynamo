@@ -9,6 +9,14 @@ import (
 	"testing"
 )
 
+func TestNil(t *testing.T) {
+	b := NewBatchGetItem()
+	_,_,err := b.DoBatchGetWithConf(nil)
+	if err == nil {
+		t.Errorf("nil conf should result in error")
+	}
+}
+
 func TestRequestUnmarshal(t *testing.T) {
 	s := []string{`{"RequestItems":{"Forum":{"Keys":[{"Name":{"S":"AmazonDynamoDB"}},{"Name":{"S":"AmazonRDS"}},{"Name":{"S":"AmazonRedshift"}}],"AttributesToGet":["Name","Threads","Messages","Views"]},"Thread":{"Keys":[{"ForumName":{"S":"AmazonDynamoDB"}},{"Subject":{"S":"Concurrentreads"}}],"AttributesToGet":["Tags","Message"]}},"ReturnConsumedCapacity":"TOTAL"}`}
 	for _, v := range s {

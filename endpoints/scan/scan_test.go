@@ -6,6 +6,14 @@ import (
 	"testing"
 )
 
+func TestNil(t *testing.T) {
+	s := NewScan()
+	_,_,err := s.EndpointReqWithConf(nil)
+	if err == nil {
+		t.Errorf("nil conf should result in error")
+	}
+}
+
 func TestRequestUnmarshal(t *testing.T) {
 	s := []string{`{"TableName":"Reply","ReturnConsumedCapacity":"TOTAL"}`, `{"TableName":"Reply","ScanFilter":{"PostedBy":{"AttributeValueList":[{"S":"joe@example.com"}],"ComparisonOperator":"EQ"}},"ReturnConsumedCapacity":"TOTAL"}`}
 	for _, v := range s {
@@ -15,11 +23,10 @@ func TestRequestUnmarshal(t *testing.T) {
 			e := fmt.Sprintf("unmarshal Query: %v", um_err)
 			t.Errorf(e)
 		}
-		json, jerr := json.Marshal(q)
+		_, jerr := json.Marshal(q)
 		if jerr != nil {
 			t.Errorf("cannot marshal %v\n", jerr)
 		}
-		_ = fmt.Sprintf("IN:%v, OUT:%v\n", v, string(json))
 	}
 }
 
@@ -32,10 +39,9 @@ func TestResponseUnmarshal(t *testing.T) {
 			e := fmt.Sprintf("unmarshal Response: %v", um_err)
 			t.Errorf(e)
 		}
-		json, jerr := json.Marshal(q)
+		_, jerr := json.Marshal(q)
 		if jerr != nil {
 			t.Errorf("cannot marshal\n")
 		}
-		_ = fmt.Sprintf("IN:%v, OUT:%v\n", v, string(json))
 	}
 }

@@ -2,9 +2,14 @@
 // The AWS SDKs utilize a conf file format that this package attempts compatibility with while
 // supporting extra fields. This is why the type detailing the file and internal formats differ.
 // See SAMPLE-aws-config.json in the source repository for a sample.
+//
+// This package will eventually feature code to interoperate with the "official" SDK once it
+// settles.
 package conf
 
 import (
+	"errors"
+	roles "github.com/smugmug/goawsroles/roles"
 	"sync"
 )
 
@@ -116,8 +121,76 @@ type AWS_Conf struct {
 	ConfLock sync.RWMutex
 }
 
+// Copy will safely copy the values from one conf struct to another.
+func (c *AWS_Conf) Copy(s *AWS_Conf) error {
+	if c == nil || s == nil {
+		return errors.New("conf.Copy: one of c or s is nil")
+	}
+	c.ConfLock.Lock()
+	s.ConfLock.RLock()
+	c.Initialized = s.Initialized
+	c.Auth = s.Auth
+	c.Network = s.Network
+	c.UseSysLog = s.UseSysLog
+	c.UseIAM = s.UseIAM
+	c.IAM = s.IAM
+	s.ConfLock.RUnlock()
+	c.ConfLock.Unlock()
+	return nil
+}
+
+// CredentialsFromRoles will copy the accessKey,secret, and optionally the token
+// from the Roles instance and set the IAM flag appropriately.
+func (c *AWS_Conf) CredentialsFromRoles(r roles.RolesReader) error {
+	if c == nil {
+		return errors.New("conf.CredentialsFromRoles: c is nil")
+	}
+	c.ConfLock.Lock()
+	defer c.ConfLock.Unlock()
+	accessKey, accessKey_err := r.GetAccessKey()
+	if accessKey_err != nil {
+		c.Initialized = false
+		return accessKey_err
+	}
+	secret, secret_err := r.GetSecret()
+	if secret_err != nil {
+		c.Initialized = false
+		return secret_err
+	}
+	if r.UsingIAM() {
+		// we are using IAM temporary credentials, we must get the Token
+		token, token_err := r.GetToken()
+		if token_err != nil {
+			c.Initialized = false
+			return token_err
+		}
+		c.IAM.Credentials.AccessKey = accessKey
+		c.IAM.Credentials.Secret = secret
+		c.IAM.Credentials.Token = token
+		c.Auth.AccessKey = ""
+		c.Auth.Secret = ""
+		c.UseIAM = true
+	} else {
+		// just using master credentials
+		c.Auth.AccessKey = accessKey
+		c.Auth.Secret = secret
+		c.IAM.Credentials.AccessKey = ""
+		c.IAM.Credentials.Secret = ""
+		c.IAM.Credentials.Token = ""
+		c.UseIAM = false
+	}
+	c.Initialized = true
+	return nil
+}
+
+// IsValid returns true of the conf pointer passed is not nil and references an initialized struct.
+func IsValid(c *AWS_Conf) bool {
+	return c != nil && c.Initialized
+}
+
 // Vals is the global conf vals struct. It is shared throughout the duration of program execution.
 // Use the embedded ConfLock mutex to use it safely.
+// It is preferred now that developers avoid this and instead use methods that take a configuration parameter.
 var (
 	Vals AWS_Conf
 )

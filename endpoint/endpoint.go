@@ -7,6 +7,7 @@
 package endpoint
 
 import (
+	"github.com/smugmug/godynamo/conf"
 	"github.com/smugmug/godynamo/types/attributedefinition"
 	"github.com/smugmug/godynamo/types/attributesresponse"
 	"github.com/smugmug/godynamo/types/attributestoget"
@@ -132,6 +133,10 @@ type GlobalSecondaryIndexDesc globalsecondaryindex.GlobalSecondaryIndexDesc
 // and an error (or nil). This is the fundamental endpoint interface of
 // GoDynamo.
 type Endpoint interface {
+	// uses a parameterized conf
+	EndpointReqWithConf(c *conf.AWS_Conf) ([]byte, int, error)
+
+	// applies the global conf.Vals to EndpointReq(c *AWS_Conf)
 	EndpointReq() ([]byte, int, error)
 }
 

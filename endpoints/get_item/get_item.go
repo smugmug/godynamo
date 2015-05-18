@@ -11,6 +11,7 @@ import (
 	"errors"
 	"github.com/smugmug/godynamo/authreq"
 	"github.com/smugmug/godynamo/aws_const"
+	"github.com/smugmug/godynamo/conf"
 	"github.com/smugmug/godynamo/types/attributestoget"
 	"github.com/smugmug/godynamo/types/attributevalue"
 	"github.com/smugmug/godynamo/types/capacity"
@@ -71,7 +72,6 @@ func NewResponse() *Response {
 	return r
 }
 
-// Some work required to omit empty ConsumedCapacity fields
 func (r Response) MarshalJSON() ([]byte, error) {
 	if r.ConsumedCapacity.Empty() {
 		var ri response_no_capacity
@@ -101,7 +101,6 @@ func NewResponseItemJSON() *ResponseItemJSON {
 	return r
 }
 
-// Some work required to omit empty ConsumedCapacity fields
 func (r ResponseItemJSON) MarshalJSON() ([]byte, error) {
 	if r.ConsumedCapacity.Empty() {
 		var ri responseItemJSON_no_capacity
@@ -130,21 +129,60 @@ func (resp *Response) ToResponseItemJSON() (*ResponseItemJSON, error) {
 	return resp_json, nil
 }
 
-func (get_item *GetItem) EndpointReq() ([]byte, int, error) {
+// These implementations of EndpointReq use a parameterized conf.
+
+func (get_item *GetItem) EndpointReqWithConf(c *conf.AWS_Conf) ([]byte, int, error) {
+	if get_item == nil {
+		return nil, 0, errors.New("get_item.(GetItem)EndpointReqWithConf: receiver is nil")
+	}
+	if !conf.IsValid(c) {
+		return nil, 0, errors.New("get_item.EndpointReqWithConf: c is not valid")
+	}
 	// returns resp_body,code,err
 	reqJSON, json_err := json.Marshal(get_item)
 	if json_err != nil {
 		return nil, 0, json_err
 	}
-	return authreq.RetryReqJSON_V4(reqJSON, GETITEM_ENDPOINT)
+	return authreq.RetryReqJSON_V4WithConf(reqJSON, GETITEM_ENDPOINT, c)
+}
+
+func (get *Get) EndpointReqWithConf(c *conf.AWS_Conf) ([]byte, int, error) {
+	if get == nil {
+		return nil, 0, errors.New("get_item.(Get)EndpointReqWithConf: receiver is nil")
+	}
+	get_item := GetItem(*get)
+	return get_item.EndpointReqWithConf(c)
+}
+
+func (req *Request) EndpointReqWithConf(c *conf.AWS_Conf) ([]byte, int, error) {
+	if req == nil {
+		return nil, 0, errors.New("get_item.(Request)EndpointReqWithConf: receiver is nil")
+	}
+	get_item := GetItem(*req)
+	return get_item.EndpointReqWithConf(c)
+}
+
+// These implementations of EndpointReq use the global conf.
+
+func (get_item *GetItem) EndpointReq() ([]byte, int, error) {
+	if get_item == nil {
+		return nil, 0, errors.New("get_item.(GetItem)EndpointReq: receiver is nil")
+	}
+	return get_item.EndpointReqWithConf(&conf.Vals)
 }
 
 func (get *Get) EndpointReq() ([]byte, int, error) {
+	if get == nil {
+		return nil, 0, errors.New("get_item.(Get)EndpointReq: receiver is nil")
+	}
 	get_item := GetItem(*get)
-	return get_item.EndpointReq()
+	return get_item.EndpointReqWithConf(&conf.Vals)
 }
 
 func (req *Request) EndpointReq() ([]byte, int, error) {
+	if req == nil {
+		return nil, 0, errors.New("get_item.(GetItem)EndpointReq: receiver is nil")
+	}
 	get_item := GetItem(*req)
-	return get_item.EndpointReq()
+	return get_item.EndpointReqWithConf(&conf.Vals)
 }

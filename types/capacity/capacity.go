@@ -33,10 +33,7 @@ type ReturnConsumedCapacity string
 type consumedcapacity ConsumedCapacity
 
 // Empty determines if this has struct has been assigned
-func (c *ConsumedCapacity) Empty() bool {
-	if c == nil {
-		return true
-	}
+func (c ConsumedCapacity) Empty() bool {
 	if ((c.Table == nil) || (c.Table.CapacityUnits == 0)) &&
 		len(c.LocalSecondaryIndexes) == 0 &&
 		len(c.GlobalSecondaryIndexes) == 0 &&

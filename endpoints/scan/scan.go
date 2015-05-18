@@ -8,8 +8,10 @@ package scan
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/smugmug/godynamo/authreq"
 	"github.com/smugmug/godynamo/aws_const"
+	"github.com/smugmug/godynamo/conf"
 	"github.com/smugmug/godynamo/types/attributestoget"
 	"github.com/smugmug/godynamo/types/attributevalue"
 	"github.com/smugmug/godynamo/types/aws_strings"
@@ -85,18 +87,46 @@ func NewResponse() *Response {
 	return r
 }
 
-func (scan *Scan) EndpointReq() ([]byte, int, error) {
+// These implementations of EndpointReq use a parameterized conf.
+
+func (scan *Scan) EndpointReqWithConf(c *conf.AWS_Conf) ([]byte, int, error) {
+	if scan == nil {
+		return nil, 0, errors.New("scan.(Scan)EndpointReqWithConf: receiver is nil")
+	}
+	if !conf.IsValid(c) {
+		return nil, 0, errors.New("scan.EndpointReqWithConf: c is not valid")
+	}
 	// returns resp_body,code,err
 	reqJSON, json_err := json.Marshal(scan)
 	if json_err != nil {
 		return nil, 0, json_err
 	}
-	return authreq.RetryReqJSON_V4(reqJSON, SCAN_ENDPOINT)
+	return authreq.RetryReqJSON_V4WithConf(reqJSON, SCAN_ENDPOINT, c)
+}
+
+func (req *Request) EndpointWithConf(c *conf.AWS_Conf) ([]byte, int, error) {
+	if req == nil {
+		return nil, 0, errors.New("scan.(Request)EndpointReqWithConf: receiver is nil")
+	}
+	scan := Scan(*req)
+	return scan.EndpointReqWithConf(c)
+}
+
+// These implementations of EndpointReq use the global conf.
+
+func (scan *Scan) EndpointReq() ([]byte, int, error) {
+	if scan == nil {
+		return nil, 0, errors.New("scan.(Scan)EndpointReq: receiver is nil")
+	}
+	return scan.EndpointReqWithConf(&conf.Vals)
 }
 
 func (req *Request) EndpointReq() ([]byte, int, error) {
+	if req == nil {
+		return nil, 0, errors.New("scan.(Request)EndpointReq: receiver is nil")
+	}
 	scan := Scan(*req)
-	return scan.EndpointReq()
+	return scan.EndpointReqWithConf(&conf.Vals)
 }
 
 // ValidOp determines if an operation is in the approved list.

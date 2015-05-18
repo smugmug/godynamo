@@ -35,7 +35,7 @@ type constraints Constraints
 
 func (c *Constraints) UnmarshalJSON(data []byte) error {
 	if c == nil {
-		return errors.New("pointer receiver for unmarshal is nil")
+		return errors.New("Expected.UnmarshalJSON: pointer receiver for unmarshal is nil")
 	}
 	var ci constraints
 	t_err := json.Unmarshal(data, &ci)
@@ -48,11 +48,15 @@ func (c *Constraints) UnmarshalJSON(data []byte) error {
 	}
 
 	if ci.Exists == nil {
-		*c.Exists = true
+		c.Exists = nil
 	} else {
 		*c.Exists = *ci.Exists
 	}
 
+	if ci.ComparisonOperator != "" {
+		c.ComparisonOperator = ci.ComparisonOperator
+	}
+	
 	if ci.Value != nil {
 		c.Value = attributevalue.NewAttributeValue()
 		cp_err := ci.Value.Copy(c.Value)
@@ -64,7 +68,7 @@ func (c *Constraints) UnmarshalJSON(data []byte) error {
 	l_ci_avl := len(ci.AttributeValueList)
 	if l_ci_avl != 0 {
 		c.AttributeValueList = make([]*attributevalue.AttributeValue, l_ci_avl)
-		for i, _ := range ci.AttributeValueList {
+		for i := range ci.AttributeValueList {
 			c.AttributeValueList[i] = attributevalue.NewAttributeValue()
 			cp_err := ci.AttributeValueList[i].Copy(c.AttributeValueList[i])
 			if cp_err != nil {

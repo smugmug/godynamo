@@ -17,7 +17,9 @@ Also installed as dependencies are
 
         https://github.com/smugmug/goawsroles
 
-which manages support for IAM roles.
+which manages support for IAM roles, namely
+
+        https://github.com/smugmug/goawsroles/roles_files
 
 GoDynamo is the foundation of *bbpd*, the http proxy daemon for DynamoDB.
 You may find that package here:
@@ -102,41 +104,55 @@ as IAM is capable of setting fine-grained permissions. See your sysadmin for ass
 you do not wish to use IAM or cannot create the automation to keep your local credential files
 up to date, you may wish to set `use_iam` to false and just set the access and secret keypair.
 
-
 ### Some necessary boilerplate
 
 In any program you write using GoDynamo, you must first make sure that your configuration has
 been initialized properly. You will optionally wish to use IAM support for authentication.
-Below is some boilerplate to enable both of these in your program:
+
+See the files in `tests` for full examples for various endpoints. Below is a small example
+illustrating the way a program using GoDynamo is set up:
+
+
 
         import (
                 "fmt"
                 "log"
+                "http"
                 conf_iam "github.com/smugmug/godynamo/conf_iam"
                 keepalive "github.com/smugmug/godynamo/keepalive"
                 "github.com/smugmug/godynamo/conf"
                 "github.com/smugmug/godynamo/conf_file"
+                put "github.com/bradclawsie/godynamo/endpoints/put_item"
         )
+
+        // This example will attempt to put an item to a imaginary test table.
 
         func main() {
 
-            // Read in the conf file, panic if it hasn't been initialized correctly.
-            conf_file.Read()
-            if conf.Vals.Initialized == false {
-                panic("the conf.Vals global conf struct has not been initialized")
+            // Let's try to read a conf file located at `$HOME/.aws-config.json`.
+            home := os.Getenv("HOME")
+            home_conf_file := home + string(os.PathSeparator) + "." + conf.CONF_NAME
+            home_conf, home_conf_err := conf_file.ReadConfFile(home_conf_file)
+            if home_conf_err != nil {
+                panic("cannot read conf from " + home_conf_file)
+            }
+            home_conf.ConfLock.RLock()
+            if home_conf.Initialized == false {
+                panic("conf struct has not been initialized")
             }
 
-     	    // launch a background poller to keep conns to aws alive
-	        if conf.Vals.Network.DynamoDB.KeepAlive {
-		        log.Printf("launching background keepalive")
-		        go keepalive.KeepAlive([]string{conf.Vals.Network.DynamoDB.URL})
-	        }
+     	    // A convenience to keep connections to AWS open, which is not needed if you
+            // are generating many requests through normal use.
+            if home_conf.Network.DynamoDB.KeepAlive {
+                log.Printf("launching background keepalive")
+                go keepalive.KeepAlive([]string{home_conf.Network.DynamoDB.URL})
+            }
 
             // Initialize a goroutine which will watch for changes in the local files
             // we have chosen (in our conf file) to contain our IAM authentication values.
             // It is assumed that another process refreshes these files.
             // If you opt to use plain old AWS authentication pairs, you don't need this.
-            if conf.Vals.UseIAM {
+            if home_conf.UseIAM {
                  iam_ready_chan := make(chan bool)
                  go conf_iam.GoIAM(iam_ready_chan)
                  iam_ready := <- iam_ready_chan
@@ -146,7 +162,24 @@ Below is some boilerplate to enable both of these in your program:
                      fmt.Printf("not using iam\n")
                 }
             }
-            // ... rest of code
+
+            home_conf.ConfLock.RUnlock()
+
+            put1 := put.NewPutItem()
+            put1.TableName = "test-godynamo-livetest"
+	
+            hashKey := fmt.Sprintf("my-hash-key")
+            rangeKey := fmt.Sprintf("%v",1)
+            put1.Item["TheHashKey"] = &attributevalue.AttributeValue{S: hashKey}
+            put1.Item["TheRangeKey"] = &attributevalue.AttributeValue{N: rangeKey}
+
+            // All endpoints now support a parameterized conf.
+            body, code, err := put1.EndpointReqWithConf(home_conf)
+            if err != nil || code != http.StatusOK {
+                fmt.Printf("put failed %d %v %s\n", code, err, body)
+            }
+            fmt.Printf("%v\n%v\n,%v\n", string(body), code, err)
+
         }
 
 For more examples that demonstrate how you might wish to use various endpoint libraries, please refer to the
@@ -185,7 +218,7 @@ is translated to this basic JSON:
 
 Here are some other examples:
 
-`AttributeValue`:
+`AttrbiuteValue`:
 
         {"AStringSet":{"SS":["a","b","c"]}}
         {"ANumber":{"N":"4"}}
@@ -223,7 +256,7 @@ variable to translate the basic JSON into `AttributeValue` types and return a `B
 type that you can now call `EndpointReq` on.
 
 Note that AWS itself does not support basic JSON - the support is always delivered by a
-coercion of basic JSON to and from `AttributeValue`. This coercion is lossy! For example,
+coercion of basic JSON to and from `AttrbiuteValue`. This coercion is lossy! For example,
 a `B` or `BS` will be coerced to a string type (`S`, `SS`) and `NULL` types will be
 coerced to `BOOL`. Use with caution.
 
@@ -236,6 +269,16 @@ basic JSON, only `PutRequest`.
 GoDynamo provides verbose error messages when appropriate, as well as STDERR messaging. If error
 reporting is not useful, it is possible that DynamoDB itself has a new or changed feature that is
 not reflected in GoDynamo. 
+
+### Recent Noteworthy Changes
+
+Early versions of GoDynamo utilized a global configuration that was accessed inside relevant
+functions once set. Many developers requested that these configurations become parameterized
+so they could utilize different configurations simultaneously. GoDynamo now supports
+parameterized configurations in every function. These new functions are called `EndpointReqWithConf`.
+
+Parameterized configuration has been moved into the full api including the core authorization
+functions.
 
 ### Contact Us
 

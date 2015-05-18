@@ -8,8 +8,10 @@ package query
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/smugmug/godynamo/authreq"
 	"github.com/smugmug/godynamo/aws_const"
+	"github.com/smugmug/godynamo/conf"
 	"github.com/smugmug/godynamo/types/attributestoget"
 	"github.com/smugmug/godynamo/types/attributevalue"
 	"github.com/smugmug/godynamo/types/aws_strings"
@@ -46,7 +48,7 @@ type Query struct {
 	ExpressionAttributeNames  expressionattributenames.ExpressionAttributeNames `json:",omitempty"`
 	ExpressionAttributeValues attributevalue.AttributeValueMap                  `json:",omitempty"`
 	FilterExpression          string                                            `json:",omitempty"`
-	IndexName                 string                                            `json:",omitempty"`
+	Indexname                 string                                            `json:",omitempty"`
 	KeyConditions             condition.Conditions
 	Limit                     uint64               `json:",omitempty"`
 	ProjectionExpression      string               `json:",omitempty"`
@@ -87,18 +89,46 @@ func NewResponse() *Response {
 	return r
 }
 
-func (query *Query) EndpointReq() ([]byte, int, error) {
+// These implementations of EndpointReq use a parameterized conf.
+
+func (query *Query) EndpointReqWithConf(c *conf.AWS_Conf) ([]byte, int, error) {
+	if query == nil {
+		return nil, 0, errors.New("query.(Query)EndpointReqWithConf: receiver is nil")
+	}
+	if !conf.IsValid(c) {
+		return nil, 0, errors.New("query.EndpointReqWithConf: c is not valid")
+	}
 	// returns resp_body,code,err
 	reqJSON, json_err := json.Marshal(query)
 	if json_err != nil {
 		return nil, 0, json_err
 	}
-	return authreq.RetryReqJSON_V4(reqJSON, QUERY_ENDPOINT)
+	return authreq.RetryReqJSON_V4WithConf(reqJSON, QUERY_ENDPOINT, c)
+}
+
+func (req *Request) EndpointReqWithConf(c *conf.AWS_Conf) ([]byte, int, error) {
+	if req == nil {
+		return nil, 0, errors.New("query.(Request)EndpointReqWithConf: receiver is nil")
+	}
+	query := Query(*req)
+	return query.EndpointReqWithConf(c)
+}
+
+// These implementations of EndpointReq use the global conf.
+
+func (query *Query) EndpointReq() ([]byte, int, error) {
+	if query == nil {
+		return nil, 0, errors.New("query.(Query)EndpointReq: receiver is nil")
+	}
+	return query.EndpointReqWithConf(&conf.Vals)
 }
 
 func (req *Request) EndpointReq() ([]byte, int, error) {
+	if req == nil {
+		return nil, 0, errors.New("query.(Request)EndpointReq: receiver is nil")
+	}
 	query := Query(*req)
-	return query.EndpointReq()
+	return query.EndpointReqWithConf(&conf.Vals)
 }
 
 // ValidOp determines if an operation is in the approved list.
