@@ -48,7 +48,7 @@ type Query struct {
 	ExpressionAttributeNames  expressionattributenames.ExpressionAttributeNames `json:",omitempty"`
 	ExpressionAttributeValues attributevalue.AttributeValueMap                  `json:",omitempty"`
 	FilterExpression          string                                            `json:",omitempty"`
-	Indexname                 string                                            `json:",omitempty"`
+	IndexName                 string                                            `json:",omitempty"`
 	KeyConditions             condition.Conditions
 	Limit                     uint64               `json:",omitempty"`
 	ProjectionExpression      string               `json:",omitempty"`
