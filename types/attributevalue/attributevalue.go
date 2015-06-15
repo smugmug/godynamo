@@ -176,7 +176,7 @@ func NewAttributeValue() *AttributeValue {
 	return a
 }
 
-// Copy makes a copy of the this AttributeValue.
+// Copy makes a copy of the this AttributeValue into ac.
 func (a *AttributeValue) Copy(ac *AttributeValue) error {
 	if a == nil {
 		return errors.New("AttributeValue.Copy: pointer receiver is nil")
@@ -454,6 +454,29 @@ type AttributeValueMap map[string]*AttributeValue
 func NewAttributeValueMap() AttributeValueMap {
 	m := make(map[string]*AttributeValue)
 	return m
+}
+
+// Copy makes a copy of the this AttributeValueMap into ac.
+func (a AttributeValueMap) Copy(ac AttributeValueMap) error {
+	if a == nil {
+		return errors.New("AttributeValueMap.Copy: pointer receiver is nil")
+	}
+	if ac == nil {
+		return errors.New("AttributeValueMap.Copy: copy target attributeValueMap instance is nil")
+	}
+	for key, attributeValue := range a {
+		av_cp := NewAttributeValue()
+		if av_cp == nil {
+			return errors.New("AttributeValueMap.Copy: copy attributeValue is nil")
+		}
+		cp_err := attributeValue.Copy(av_cp)
+		if cp_err != nil {
+			e := fmt.Sprintf("AttributeValueMap.Copy: copy attributeValue err:%s", cp_err.Error())
+			return errors.New(e)
+		}
+		ac[key] = av_cp
+	}
+	return nil
 }
 
 // AttributeValueUpdate is used in UpdateItem

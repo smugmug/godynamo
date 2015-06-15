@@ -54,7 +54,7 @@ func TestAttributeValueMarshalDeDuplicate(t *testing.T) {
 		if um_err != nil {
 			t.Errorf("cannot unmarshal\n")
 		}
-		
+
 		json, jerr := json.Marshal(a)
 		if jerr != nil {
 			t.Errorf("cannot marshal\n")
@@ -135,6 +135,19 @@ func TestAttributeValueInserts(t *testing.T) {
 	if len(c) != len(string(json)) {
 		e := fmt.Sprintf("%s\n%s\nshould be same",c,string(json))
 		t.Errorf(e)
+	}
+
+	av1 := NewAttributeValueMap()
+	k := "myItem"
+	av1[k] = a1
+	av2 := NewAttributeValueMap()
+	cp_err := av1.Copy(av2)
+	if cp_err != nil {
+		t.Errorf(cp_err.Error())
+	}
+	av1 = nil
+	if _,ok := av2[k]; !ok {
+		t.Errorf("key is not set in copy")
 	}
 }
 
