@@ -117,12 +117,13 @@ illustrating the way a program using GoDynamo is set up:
         import (
                 "fmt"
                 "log"
-                "http"
+                "net/http"
                 conf_iam "github.com/smugmug/godynamo/conf_iam"
                 keepalive "github.com/smugmug/godynamo/keepalive"
                 "github.com/smugmug/godynamo/conf"
                 "github.com/smugmug/godynamo/conf_file"
                 put "github.com/bradclawsie/godynamo/endpoints/put_item"
+               	"github.com/smugmug/godynamo/types/attributevalue"
         )
 
         // This example will attempt to put an item to a imaginary test table.
