@@ -122,7 +122,7 @@ illustrating the way a program using GoDynamo is set up:
                 keepalive "github.com/smugmug/godynamo/keepalive"
                 "github.com/smugmug/godynamo/conf"
                 "github.com/smugmug/godynamo/conf_file"
-                put "github.com/bradclawsie/godynamo/endpoints/put_item"
+                put "github.com/smugmug/godynamo/endpoints/put_item"
                	"github.com/smugmug/godynamo/types/attributevalue"
         )
 
