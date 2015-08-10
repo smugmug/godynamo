@@ -218,7 +218,7 @@ is translated to this basic JSON:
 
 Here are some other examples:
 
-`AttrbiuteValue`:
+`AttributeValue`:
 
         {"AStringSet":{"SS":["a","b","c"]}}
         {"ANumber":{"N":"4"}}
